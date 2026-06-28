@@ -1,0 +1,20 @@
+{
+  "name": "Filevine Connector",
+  "version": "1.0.0",
+  "description": "Browse Filevine API endpoints, preview data, and transfer into Domo datasets.",
+  "size": {
+    "width": 12,
+    "height": 8
+  },
+  "mapping": [],
+  "proxyId": "filevine",
+  "proxies": [
+    {
+      "name": "filevine",
+      "baseUrl": "https://api.filevineapp.com",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

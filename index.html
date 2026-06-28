@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filevine Connector v6</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#ffffff;--bg-sb:#fafbfc;--bg-in:#f5f7fa;
+    --bg-hv:#f0f3f7;--bd:#e2e8f0;--bd-lt:#eef2f6;
+    --tx:#1a202c;--tx2:#4a5568;--txm:#a0aec0;
+    --fv:#1b6b4a;--fvl:#e6f4ee;--fvm:#2d9d6f;
+    --dm:#4c8cc5;--dml:#eaf2fb;
+    --ac:#1b6b4a;--ach:#155a3e;--acl:#e6f4ee;
+    --dg:#e53e3e;--dgl:#fef2f2;
+    --ok:#38a169;--okl:#f0fff4;
+    --wn:#d69e2e;--wnl:#fffff0;
+    --r:8px;--rl:12px;
+    --sh:0 2px 8px rgba(0,0,0,0.08);--tr:all .15s ease;
+  }
+  html{font-size:14px}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+  .app{display:flex;min-height:100vh}
+  .sb{width:232px;min-height:100vh;background:var(--bg-sb);border-right:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0}
+  .sb-hd{padding:20px 16px;border-bottom:1px solid var(--bd)}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-ic{width:32px;height:32px;border-radius:8px;background:var(--fv);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff}
+  .logo-t{font-size:14px;font-weight:700;letter-spacing:-.2px}
+  .logo-s{font-size:9.5px;color:var(--txm);margin-top:1px;text-transform:uppercase;letter-spacing:.6px}
+  .sb-nav{padding:12px 8px;flex:1;overflow-y:auto}
+  .ns{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--txm);padding:10px 10px 5px;font-weight:600}
+  .nv{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);cursor:pointer;transition:var(--tr);color:var(--tx2);font-size:13px;font-weight:500;margin-bottom:1px}
+  .nv:hover{background:var(--bg-hv);color:var(--tx)}
+  .nv.on{background:var(--acl);color:var(--ac);font-weight:600}
+  .nv svg{width:16px;height:16px;flex-shrink:0}
+  .nb{margin-left:auto;font-size:10px;font-weight:600;background:var(--acl);color:var(--ac);padding:2px 7px;border-radius:12px}
+  .sb-ft{padding:14px 16px;border-top:1px solid var(--bd);font-size:11px;color:var(--txm)}
+  .sr{display:flex;align-items:center;gap:6px;margin-bottom:5px}.sr:last-child{margin-bottom:0}
+  .dot{width:6px;height:6px;border-radius:50%}
+  .dot.on{background:var(--ok);box-shadow:0 0 4px rgba(56,161,105,.5)}
+  .dot.off{background:var(--txm)}
+  .mn{flex:1;padding:24px 28px;overflow-y:auto;max-height:100vh}
+  .pg{display:none}.pg.on{display:block}
+  .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .pt{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .ps{font-size:12px;color:var(--txm);margin-top:3px}
+  .cd{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:16px}
+  .ct{font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+  .ct svg{width:16px;height:16px;color:var(--ac)}
+  .fg{margin-bottom:14px}
+  .fl{display:block;font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+  .fi,.fs{width:100%;padding:9px 12px;background:var(--bg-in);border:1px solid var(--bd);border-radius:var(--r);color:var(--tx);font-family:inherit;font-size:13px;transition:var(--tr);outline:none}
+  .fi:focus,.fs:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(27,107,74,.08)}
+  .fi::placeholder{color:var(--txm)}
+  .fi.mono{font-family:'Courier New',monospace;font-size:12px;letter-spacing:.3px}
+  .fs{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0aec0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px}
+  .fr{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .fh{font-size:10px;color:var(--txm);margin-top:3px}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:var(--tr);border:none}
+  .btn svg{width:14px;height:14px}
+  .bp{background:var(--ac);color:#fff}.bp:hover{background:var(--ach)}
+  .bs{background:var(--bg-in);color:var(--tx);border:1px solid var(--bd)}.bs:hover{background:var(--bg-hv)}
+  .bd{background:transparent;color:var(--dg);border:1px solid rgba(229,62,62,.25)}.bd:hover{background:var(--dgl)}
+  .bsm{padding:6px 12px;font-size:11px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .bg{display:flex;gap:8px;margin-top:14px}
+  .srch{position:relative;margin-bottom:16px}
+  .srch input{width:100%;padding:10px 14px 10px 38px;background:var(--bg-in);border:1px solid var(--bd);border-radius:var(--r);color:var(--tx);font-family:inherit;font-size:13px;outline:none;transition:var(--tr)}
+  .srch input:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(27,107,74,.08)}
+  .srch input::placeholder{color:var(--txm)}
+  .srch svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--txm);pointer-events:none}
+  .dt{width:100%;border-collapse:collapse}
+  .dt th{text-align:left;padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--txm);font-weight:600;border-bottom:1px solid var(--bd);background:var(--bg-in)}
+  .dt td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--bd-lt);color:var(--tx2)}
+  .dt tr:hover td{background:var(--bg-hv)}.dt tr{cursor:pointer;transition:var(--tr)}
+  .dn{color:var(--tx);font-weight:500}
+  .dmn{font-family:'Courier New',monospace;font-size:12px;color:var(--tx2)}
+  .tg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+  .tg-d{background:var(--dml);color:var(--dm)}.tg-f{background:var(--fvl);color:var(--fv)}
+  .tg-ok{background:var(--okl);color:var(--ok)}.tg-wn{background:var(--wnl);color:var(--wn)}
+  .tg-star{background:#fef3c7;color:#92400e}
+  .mo-bg{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:1000;display:none;align-items:center;justify-content:center}
+  .mo-bg.show{display:flex}
+  .mo{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);width:480px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+  .moh{padding:18px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+  .moh h3{font-size:15px;font-weight:700}
+  .mob{padding:20px}
+  .mof{padding:14px 20px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px}
+  .tw{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px}
+  .to{padding:10px 16px;border-radius:var(--r);font-size:12px;font-weight:500;box-shadow:var(--sh);display:flex;align-items:center;gap:8px;animation:tI .25s ease;min-width:260px}
+  .to.ok{background:#f0fff4;color:#276749;border:1px solid #c6f6d5}
+  .to.err{background:#fef2f2;color:#9b2c2c;border:1px solid #fed7d7}
+  .to.info{background:#ebf8ff;color:#2a4365;border:1px solid #bee3f8}
+  @keyframes tI{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+  .spin{width:16px;height:16px;border:2px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:sp .5s linear infinite;display:inline-block}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .empty{text-align:center;padding:36px 20px;color:var(--txm);font-size:13px}
+  .banner{padding:12px 16px;border-radius:var(--r);margin-bottom:16px;font-size:12px;display:flex;align-items:center;gap:8px}
+  .banner.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+  .banner.ok{background:var(--okl);border:1px solid #c6f6d5;color:#276749}
+  .banner svg{width:14px;height:14px;flex-shrink:0}
+  /* Recipe cards */
+  .rg{display:grid;grid-template-columns:1fr;gap:10px}
+  .rc{padding:14px 16px;border-radius:var(--r);border:1px solid var(--bd);cursor:pointer;transition:var(--tr);display:flex;align-items:flex-start;gap:12px}
+  .rc:hover{border-color:var(--fvm);background:#f7fcf9}
+  .rc.sel{border-color:var(--fv);background:var(--fvl)}
+  .rc-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+  .rc-ico.green{background:#d1fae5;color:#065f46}
+  .rc-ico.blue{background:#dbeafe;color:#1e40af}
+  .rc-ico.purple{background:#ede9fe;color:#5b21b6}
+  .rc-ico.amber{background:#fef3c7;color:#92400e}
+  .rc-ico.red{background:#fee2e2;color:#991b1b}
+  .rc-bd{flex:1;min-width:0}
+  .rc-nm{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:2px}
+  .rc-ds{font-size:11px;color:var(--txm);line-height:1.4}
+  .rc-tg{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+  .rc-ep{font-family:'Courier New',monospace;font-size:9px;padding:1px 6px;border-radius:4px;background:var(--bg-in);color:var(--tx2);border:1px solid var(--bd-lt)}
+  .cat-hd{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txm);padding:14px 0 6px;border-top:1px solid var(--bd-lt);margin-top:8px}
+  .cat-hd:first-child{border-top:none;margin-top:0}
+  .prog-wrap{margin:12px 0}
+  .prog-bar{height:6px;background:var(--bg-in);border-radius:3px;overflow:hidden}
+  .prog-fill{height:100%;background:var(--ac);border-radius:3px;transition:width .3s}
+  .prog-txt{font-size:11px;color:var(--tx2);margin-top:4px}
+  .opt-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .opt-row label{font-size:11px;color:var(--tx2);white-space:nowrap}
+  .opt-row select,.opt-row input{font-size:12px;padding:5px 8px}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb">
+    <div class="sb-hd"><div class="logo"><div class="logo-ic">FV</div><div><div class="logo-t">Filevine Connector</div><div class="logo-s">Domo Integration v6</div></div></div></div>
+    <nav class="sb-nav">
+      <div class="ns">Data</div>
+      <div class="nv on" data-pg="datasets" onclick="nav('datasets')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> Domo Datasets <span class="nb" id="dsCount">—</span></div>
+      <div class="nv" data-pg="transfer" onclick="nav('transfer')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/></svg> Data Transfer <span class="nb" id="rcCount"></span></div>
+      <div class="nv" data-pg="browse" onclick="nav('browse')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg> Filevine Browse</div>
+      <div class="ns" style="margin-top:12px">Configuration</div>
+      <div class="nv" data-pg="settings" onclick="nav('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Settings</div>
+    </nav>
+    <div class="sb-ft">
+      <div class="sr"><span class="dot" id="dDot"></span> Domo: <span id="dTxt">Not connected</span></div>
+      <div class="sr"><span class="dot" id="fDot"></span> Filevine: <span id="fTxt">Not configured</span></div>
+    </div>
+  </aside>
+  <main class="mn">
+    <!-- DATASETS PAGE -->
+    <div class="pg on" id="pg-datasets">
+      <div class="ph"><div><div class="pt">Domo Datasets</div><div class="ps">Browse and manage datasets in your instance</div></div>
+        <button class="btn bp" onclick="openModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Dataset</button></div>
+      <div id="dsNotice"></div>
+      <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search datasets…" id="dsSearch" oninput="filterDs()"></div>
+      <div class="cd" style="padding:0;overflow:hidden" id="dsWrap"><div class="empty">Connect to Domo in Settings to load datasets</div></div>
+    </div>
+
+    <!-- DATA TRANSFER PAGE -->
+    <div class="pg" id="pg-transfer">
+      <div class="ph"><div><div class="pt">Data Transfer</div><div class="ps">Pull Filevine data into Domo — filter by project type, auto-iterate all projects</div></div></div>
+      
+      <div id="xferStep1">
+        <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search datasets… e.g. onboarding, billing, tasks, contacts" id="rcSearch" oninput="renderRecipes()"></div>
+        
+        <!-- Dynamic project type + section picker -->
+        <div class="cd" id="selectorPicker" style="display:none">
+          <div class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Filter Options</div>
+          <div class="fr">
+            <div class="fg" style="margin-bottom:0" id="ptPickerWrap"><label class="fl">Project Type (optional filter)</label><select class="fs" id="ptPick" onchange="onPtPick()"><option value="">— All Project Types —</option></select><div class="fh" id="ptPickHint">Filter to a specific project type</div></div>
+            <div class="fg" style="margin-bottom:0" id="selPickerWrap"><label class="fl">Section Selector</label><select class="fs" id="selPick"><option value="">Loading sections…</option></select><div class="fh" id="selPickHint">Connect to Filevine to auto-discover sections</div></div>
+          </div>
+        </div>
+        
+        <div id="rcList"></div>
+        
+        <div class="fr" style="margin-top:16px;border-top:1px solid var(--bd);padding-top:16px">
+          <div class="fg" style="margin-bottom:0"><label class="fl">Max projects (0 = all)</label><input class="fi mono" id="maxProj" value="0" style="width:120px"></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Page size</label><select class="fs" id="pageSize" style="width:120px"><option value="100">100</option><option value="250">250</option><option value="500" selected>500</option><option value="1000">1000</option></select></div>
+        </div>
+        <div class="bg"><button class="btn bp" id="fetchBtn" onclick="recipeFetch()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Fetch Dataset</button></div>
+      </div>
+
+      <!-- Step 2: Preview -->
+      <div class="cd" id="xferStep2" style="display:none">
+        <div class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview &amp; Push to Domo</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <span class="tg tg-f" id="pipeTag"></span>
+          <span class="ps" id="pipeInfo"></span>
+        </div>
+        <div class="prog-wrap" id="progWrap" style="display:none"><div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0"></div></div><div class="prog-txt" id="progTxt"></div></div>
+        <div style="overflow-x:auto;border:1px solid var(--bd);border-radius:var(--r);max-height:300px;overflow-y:auto" id="pipePreview"></div>
+
+        <!-- Mode toggle: Create vs Update -->
+        <div style="display:flex;gap:8px;margin-top:16px;margin-bottom:12px">
+          <button class="btn bp bsm" id="modeNewBtn" onclick="setPushMode('new')" style="flex:1">＋ Create New Dataset</button>
+          <button class="btn bs bsm" id="modeUpdateBtn" onclick="setPushMode('update')" style="flex:1">↻ Update Existing Dataset</button>
+        </div>
+
+        <!-- Create-new fields -->
+        <div id="pushModeNew">
+          <div class="fg"><label class="fl">Dataset Name</label><input class="fi" id="pipeDsName"></div>
+        </div>
+        <!-- Update-existing fields -->
+        <div id="pushModeUpdate" style="display:none">
+          <div class="fg"><label class="fl">Select Existing Dataset</label>
+            <div style="position:relative"><input class="fi" id="existDsSearch" placeholder="Search your Domo datasets…" oninput="filterExistDs()" onfocus="gi('existDsDropdown').style.display=''"><div id="existDsDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--bd);border-radius:0 0 var(--r) var(--r);z-index:10;box-shadow:var(--sh)"></div></div>
+            <div class="fh" id="existDsHint">Connect to Domo to browse datasets</div>
+          </div>
+          <div id="existDsSelected" style="display:none;margin-top:8px;padding:10px 14px;background:var(--bg-in);border:1px solid var(--bd);border-radius:var(--r)">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><span style="font-weight:600;font-size:13px" id="existDsName"></span><br><span style="font-size:11px;color:var(--txm)" id="existDsMeta"></span></div>
+              <button class="btn bd bsm" onclick="clearExistDs()">✕</button>
+            </div>
+          </div>
+          <div class="fg" style="margin-top:8px"><label class="fl">Write Mode</label>
+            <select class="fs" id="writeMode"><option value="REPLACE">REPLACE — overwrite all rows</option><option value="APPEND">APPEND — add rows to existing data</option></select>
+            <div class="fh">Replace clears existing data first. Append adds rows without clearing.</div>
+          </div>
+        </div>
+
+        <div class="fg"><label class="fl">Schema (<span id="colCount">0</span> cols)</label><div id="pipeSchema" style="font-family:'Courier New',monospace;font-size:11px;background:var(--bg-in);padding:10px 14px;border-radius:var(--r);border:1px solid var(--bd);color:var(--tx2);max-height:120px;overflow-y:auto"></div></div>
+        <div class="bg">
+          <button class="btn bp" id="pushBtn" onclick="pipePush()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg> Create Dataset &amp; Push to Domo</button>
+          <button class="btn bs" onclick="xferReset()">Start Over</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Done -->
+      <div class="cd" id="xferStep3" style="display:none">
+        <div style="text-align:center;padding:20px 0">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--ok)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div class="pt" style="margin-top:12px" id="doneName"></div>
+          <div class="ps" id="doneInfo" style="margin-top:4px"></div>
+          <div class="bg" style="justify-content:center;margin-top:20px;flex-wrap:wrap">
+            <button class="btn bp" id="refreshBtn" onclick="pipeRefresh()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Refresh — Re-fetch &amp; Update</button>
+            <button class="btn bs" onclick="pipeClone()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Clone — New dataset, same recipe</button>
+            <button class="btn bs" onclick="xferReset()">Transfer Another</button>
+            <button class="btn bs" onclick="nav('datasets')">View Datasets</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILEVINE BROWSE PAGE -->
+    <div class="pg" id="pg-browse">
+      <div class="ph"><div><div class="pt">Filevine Browse</div><div class="ps">Explore any endpoint — dynamic params auto-resolve from cache</div></div>
+        <button class="btn bs bsm" onclick="refreshBrowseCache()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Refresh Cache</button></div>
+
+      <!-- Cache Status -->
+      <div class="cd" id="cacheStatus">
+        <div class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.66 0 3-4 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4-3-9s1.34-9 3-9"/></svg> Dependency Cache</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px" id="cacheGrid">
+          <div style="background:var(--bg-in);padding:10px 12px;border-radius:var(--r);border:1px solid var(--bd-lt)"><div style="font-size:18px;font-weight:700" id="cacheProjects">—</div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.5px">Projects</div></div>
+          <div style="background:var(--bg-in);padding:10px 12px;border-radius:var(--r);border:1px solid var(--bd-lt)"><div style="font-size:18px;font-weight:700" id="cacheContacts">—</div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.5px">Contacts</div></div>
+          <div style="background:var(--bg-in);padding:10px 12px;border-radius:var(--r);border:1px solid var(--bd-lt)"><div style="font-size:18px;font-weight:700" id="cachePTypes">—</div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.5px">Project Types</div></div>
+          <div style="background:var(--bg-in);padding:10px 12px;border-radius:var(--r);border:1px solid var(--bd-lt)"><div style="font-size:18px;font-weight:700" id="cacheSections">—</div><div style="font-size:10px;color:var(--txm);text-transform:uppercase;letter-spacing:.5px">Sections</div></div>
+        </div>
+      </div>
+
+      <!-- Endpoint Browser -->
+      <div class="cd">
+        <div class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Endpoint Explorer</div>
+        <div class="fr">
+          <div class="fg" style="margin-bottom:0"><label class="fl">Endpoint Category</label>
+            <select class="fs" id="browseCategory" onchange="onBrowseCategoryChange()">
+              <option value="">— Select —</option>
+              <option value="org">Org-Wide (no params)</option>
+              <option value="project">Per-Project (needs Project ID)</option>
+              <option value="contact">Per-Contact (needs Contact ID)</option>
+              <option value="section">Section Data (needs Project ID + Selector)</option>
+              <option value="custom">Custom Path</option>
+            </select>
+          </div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Endpoint</label>
+            <select class="fs" id="browseEndpoint" onchange="onBrowseEndpointChange()">
+              <option value="">Select a category first</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Dynamic param resolver -->
+        <div id="browseParams" style="display:none;margin-top:14px;padding:14px;background:var(--bg-in);border-radius:var(--r);border:1px solid var(--bd-lt)">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--tx2);margin-bottom:8px">Auto-Resolved Parameters</div>
+          <div id="browseParamFields"></div>
+        </div>
+
+        <div class="fr" style="margin-top:14px">
+          <div class="fg" style="margin-bottom:0"><label class="fl">Max Results (0 = all)</label><input class="fi mono" id="browseMax" value="100" style="width:120px"></div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Iterate All Cached IDs</label>
+            <select class="fs" id="browseIterate" style="width:180px"><option value="single">Single (first/selected ID)</option><option value="all">All cached IDs</option></select>
+          </div>
+        </div>
+
+        <div class="bg">
+          <button class="btn bp" id="browseFetchBtn" onclick="browseFetch()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Fetch</button>
+          <button class="btn bs" id="browsePushBtn" onclick="browsePushToDomo()" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg> Push to Domo</button>
+        </div>
+      </div>
+
+      <!-- Browse results -->
+      <div class="cd" id="browseResults" style="display:none">
+        <div class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> Results <span class="tg tg-ok" style="margin-left:6px" id="browseResultCount"></span></div>
+        <div style="overflow-x:auto;max-height:400px;overflow-y:auto" id="browseResultTable"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="pg" id="pg-settings">
+      <div class="ph"><div><div class="pt">Settings</div><div class="ps">Configure API connections</div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="cd">
+          <div class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> Domo API</div>
+          <div class="fg"><label class="fl">Client ID</label><input class="fi mono" id="cfgDid" value="183c60be-286a-499b-9d4a-c2278aa2cee6"></div>
+          <div class="fg"><label class="fl">Client Secret</label><input class="fi mono" type="password" id="cfgDsec" value="857b9bcef74da55bd81843b5665f3b2e980a0a440bc3904826afbc03d836305b"></div>
+          <div class="bg"><button class="btn bp" id="dConnBtn" onclick="connectDomo()">Authenticate &amp; Connect</button><button class="btn bd" onclick="disconnDomo()">Disconnect</button></div>
+        </div>
+        <div class="cd">
+          <div class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9l-2-2H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/></svg> Filevine API</div>
+          <div class="fg"><label class="fl">PAT</label><input class="fi mono" id="cfgFvPat" value="054CDD13C2D17E6BC56C2975D704D48171003066730530429176E564A98AD59F"></div>
+          <div class="fg"><label class="fl">Client ID</label><input class="fi mono" id="cfgFvCid" value="85105ea4-32f5-4a4f-ae88-51d0c61b4ba5"></div>
+          <div class="fg"><label class="fl">Client Secret</label><input class="fi mono" type="password" id="cfgFvCsec" value="t2X~BA3EUNmCup6)VI2&j!RMs"></div>
+          <div class="fg"><label class="fl">Org ID</label><input class="fi mono" id="cfgFvOrgId" value="4961"><div class="fh">SLG Main: 4961 · SLG HR: 8326</div></div>
+          <div class="fg"><label class="fl">User ID</label><input class="fi mono" id="cfgFvUserId" value="83677"></div>
+          <div class="bg"><button class="btn bp" id="fvConnBtn" onclick="connectFv()">Authenticate &amp; Connect</button><button class="btn bd" onclick="disconnFv()">Clear</button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="mo-bg" id="mdl"><div class="mo">
+  <div class="moh"><h3>Create New Dataset</h3><button style="background:none;border:none;cursor:pointer;color:var(--txm)" onclick="closeModal()">✕</button></div>
+  <div class="mob">
+    <div class="fg"><label class="fl">Name</label><input class="fi" id="newName" placeholder="e.g. Filevine — Projects"></div>
+    <div class="fg"><label class="fl">Description</label><input class="fi" id="newDesc"></div>
+    <div class="fg"><label class="fl">Columns</label><div id="schema"><div class="fr" style="margin-bottom:6px"><input class="fi" placeholder="Column name" value="id"><select class="fs"><option>STRING</option><option>LONG</option><option>DOUBLE</option><option>DATE</option><option>DATETIME</option></select></div></div><button class="btn bs bsm" onclick="addCol()" style="margin-top:6px">+ Add Column</button></div>
+  </div>
+  <div class="mof"><button class="btn bs" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="createDs()">Create</button></div>
+</div></div>
+<div class="tw" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+var S = { domoToken:null, domoConnected:false, fvConnected:false, fvToken:null, fvUserId:null, fvOrgId:null, datasets:[] };
+var C = {}; // FV cache
+var PIPE = { idx:null, items:[], cols:[], mode:'new', existDsId:null, lastDsId:null, lastDsName:null };
+
+// ═══════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════
+function gi(id){return document.getElementById(id)}
+function v(id){var el=gi(id);return el?el.value.trim():''}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(m,t){t=t||'info';var c=gi('toasts'),el=document.createElement('div');el.className='to '+t;el.innerHTML='<span style="font-size:14px">'+(t==='ok'?'✓':t==='err'?'✗':'ℹ')+'</span> '+esc(m);c.appendChild(el);setTimeout(function(){el.remove()},4000)}
+function jsonToCsv(items){if(!items.length)return '';var keys=Object.keys(items[0]);return keys.join(',')+'\n'+items.map(function(r){return keys.map(function(k){var vl=r[k];if(typeof vl==='object')vl=JSON.stringify(vl);if(typeof vl==='string'&&(vl.includes(',')||vl.includes('"')))vl='"'+vl.replace(/"/g,'""')+'"';return vl==null?'':vl}).join(',')}).join('\n')}
+function flat(obj,pfx){pfx=pfx||'';var o={};Object.keys(obj).forEach(function(k){var val=obj[k],key=pfx?pfx+'_'+k:k;if(val===null||val===undefined)o[key]='';else if(Array.isArray(val))o[key]=JSON.stringify(val);else if(typeof val==='object'){if('native' in val||'Native' in val){o[key+'_native']=val.native||val.Native||'';if(val.partner!==undefined)o[key+'_partner']=val.partner||''}else Object.assign(o,flat(val,key))}else o[key]=val});return o}
+function nav(pg){document.querySelectorAll('.pg').forEach(function(el){el.classList.remove('on')});document.querySelectorAll('.nv').forEach(function(el){el.classList.remove('on')});gi('pg-'+pg)?.classList.add('on');document.querySelector('.nv[data-pg="'+pg+'"]')?.classList.add('on');if(pg==='datasets')loadDs();if(pg==='transfer')renderRecipes();if(pg==='browse')updateCacheUI()}
+
+// ═══════════════════════════════════════
+//  DOMO AUTH & API (unchanged from v3)
+// ═══════════════════════════════════════
+async function connectDomo(){var cid=v('cfgDid'),sec=v('cfgDsec');if(!cid||!sec){toast('Enter Client ID and Secret','err');return}var btn=gi('dConnBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Auth…';try{var r=await fetch('/proxy/domo/token?client_id='+encodeURIComponent(cid)+'&client_secret='+encodeURIComponent(sec));var t=await r.text();if(t.trim().startsWith('<!'))throw new Error('PROXY');var d=JSON.parse(t);if(!r.ok)throw new Error(d.error||'HTTP '+r.status);S.domoToken=d.access_token;S.domoConnected=true;upDomo();toast('Connected to Domo!','ok');loadDs()}catch(e){toast(e.message==='PROXY'?'Proxy not running!':'Auth failed: '+e.message,'err')}btn.disabled=false;btn.innerHTML='Authenticate &amp; Connect'}
+function disconnDomo(){S.domoConnected=false;S.domoToken=null;S.datasets=[];upDomo();gi('dsWrap').innerHTML='<div class="empty">Connect to Domo in Settings</div>';gi('dsCount').textContent='—';toast('Disconnected','info')}
+async function domoFetch(m,p,body,ct){if(!S.domoToken)return null;var o={method:m,headers:{Authorization:'Bearer '+S.domoToken}};if(body){o.headers['Content-Type']=ct||'application/json';o.body=ct==='text/csv'?body:JSON.stringify(body)}try{var r=await fetch('/proxy/domo/api'+p,o);if(!r.ok)throw 0;if(m==='PUT'||m==='DELETE')return true;return await r.json()}catch(e){return null}}
+function upDomo(){gi('dDot').className='dot '+(S.domoConnected?'on':'off');gi('dTxt').textContent=S.domoConnected?'Connected':'Not connected'}
+
+// ═══════════════════════════════════════
+//  FILEVINE AUTH & API
+// ═══════════════════════════════════════
+async function connectFv(){var pat=v('cfgFvPat'),cid=v('cfgFvCid'),csec=v('cfgFvCsec');if(!pat||!cid||!csec){toast('Fill in PAT, Client ID, and Secret','err');return}var btn=gi('fvConnBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Auth…';try{var r=await fetch('/proxy/fv/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pat:pat,client_id:cid,client_secret:csec})});var t=await r.text();if(t.trim().startsWith('<!'))throw new Error('PROXY');var d=JSON.parse(t);if(!r.ok)throw new Error(d.error||'Failed');S.fvToken=d.access_token;var jwt=JSON.parse(atob(S.fvToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));S.fvUserId=v('cfgFvUserId')||jwt.sub;S.fvOrgId=v('cfgFvOrgId')||jwt.tenant_id;if(!S.fvUserId||!S.fvOrgId)throw new Error('Set Org ID and User ID');S.fvConnected=true;upFv();toast('Connected to Filevine!','ok');warmCache()}catch(e){toast(e.message==='PROXY'?'Proxy not running!':'FV auth: '+e.message,'err')}btn.disabled=false;btn.innerHTML='Authenticate &amp; Connect'}
+function disconnFv(){S.fvConnected=false;S.fvToken=null;C={};upFv();toast('Cleared','info')}
+function upFv(){gi('fDot').className='dot '+(S.fvConnected?'on':'off');gi('fTxt').textContent=S.fvConnected?'Connected':'Not configured'}
+async function fvGet(path){if(!S.fvToken)return null;try{var r=await fetch('/proxy/fv/gateway'+path,{headers:{Authorization:'Bearer '+S.fvToken,'x-fv-orgid':String(S.fvOrgId),'x-fv-userid':String(S.fvUserId),'Content-Type':'application/json'}});if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
+async function fvAll(path,max,ps,prog){if(!S.fvToken)return[];var all=[],off=0,lim=ps||500,pg=0;max=parseInt(max)||0;while(true){var fl=max>0?Math.min(lim,max-all.length):lim;if(fl<=0)break;var sep=path.includes('?')?'&':'?';var r=await fvGet(path+sep+'offset='+off+'&limit='+fl);var items=r&&(r.items||r.Items||r.data||(Array.isArray(r)?r:null));if(!items||!items.length){if(r&&!Array.isArray(r)&&typeof r==='object'&&!r.items)all.push(r);break}all=all.concat(items);pg++;if(prog)prog(all.length,pg);if(items.length<fl)break;if(max>0&&all.length>=max)break;off+=items.length}return max>0?all.slice(0,max):all}
+
+// ═══════════════════════════════════════
+//  CACHE WARMING
+// ═══════════════════════════════════════
+async function warmCache(){
+  try{
+    toast('Warming cache…','info');
+    // 1. Projects
+    if(!C.projects){C.projects=(await fvAll('/Projects',0,500)).map(flat)}
+    updateCacheUI();
+
+    // 2. Contacts (first 500 for ID resolution)
+    if(!C.contacts){C.contacts=(await fvAll('/Contacts',500,500)).map(flat)}
+    updateCacheUI();
+
+    // 3. Project Types + Sections
+    C.projectTypes=(await fvAll('/ProjectTypes',50,50)).map(flat);
+    C.selectors=[];var seen=new Set();
+    for(var k=0;k<C.projectTypes.length;k++){
+      var tid=C.projectTypes[k].projectTypeId_native||C.projectTypes[k].projectTypeId;if(!tid)continue;
+      var secs=await fvAll('/ProjectTypes/'+tid+'/Sections',100,100);
+      secs.forEach(function(s){var sel=s.sectionSelector||s.selector;if(sel&&!seen.has(sel)){seen.add(sel);C.selectors.push({val:sel,label:s.name||sel,isColl:s.isCollection||s.IsCollection||false,ptId:tid,ptName:C.projectTypes[k].name||''})}});
+    }
+    updateCacheUI();
+    toast('Cached '+C.projects.length+' projects, '+C.contacts.length+' contacts, '+C.selectors.length+' sections','ok');
+    // populate section picker
+    var opts='<option value="">— All sections —</option>'+C.selectors.map(function(s){return '<option value="'+s.val+'">'+esc(s.label)+' ('+s.val+') — '+esc(s.ptName)+(s.isColl?' [Coll]':' [Form]')+'</option>'}).join('');
+    gi('selPick').innerHTML=opts;
+    gi('selPickHint').textContent=C.selectors.length+' sections discovered';
+    // populate project type picker
+    var ptOpts='<option value="">— All Project Types —</option>'+C.projectTypes.map(function(pt){var id=pt.projectTypeId_native||pt.projectTypeId;return '<option value="'+id+'">'+esc(pt.name||'Unnamed')+' ('+id+')</option>'}).join('');
+    gi('ptPick').innerHTML=ptOpts;
+    gi('ptPickHint').textContent=C.projectTypes.length+' project types discovered';
+  }catch(e){console.log('Cache error:',e)}
+}
+function updateCacheUI(){
+  if(gi('cacheProjects'))gi('cacheProjects').textContent=C.projects?C.projects.length:'—';
+  if(gi('cacheContacts'))gi('cacheContacts').textContent=C.contacts?C.contacts.length:'—';
+  if(gi('cachePTypes'))gi('cachePTypes').textContent=C.projectTypes?C.projectTypes.length:'—';
+  if(gi('cacheSections'))gi('cacheSections').textContent=C.selectors?C.selectors.length:'—';
+}
+function onPtPick(){
+  var ptId=v('ptPick');
+  if(!ptId||!C.selectors){gi('selPick').innerHTML='<option value="">— All sections —</option>'+C.selectors.map(function(s){return '<option value="'+s.val+'">'+esc(s.label)+' ('+s.val+') — '+esc(s.ptName)+(s.isColl?' [Coll]':' [Form]')+'</option>'}).join('');return}
+  var filtered=C.selectors.filter(function(s){return String(s.ptId)===ptId});
+  gi('selPick').innerHTML='<option value="">— All sections for this type —</option>'+filtered.map(function(s){return '<option value="'+s.val+'">'+esc(s.label)+' ('+s.val+')'+(s.isColl?' [Coll]':' [Form]')+'</option>'}).join('');
+  gi('selPickHint').textContent=filtered.length+' sections for selected type';
+}
+
+// ═══════════════════════════════════════
+//  HELPERS: iterate across all projects
+// ═══════════════════════════════════════
+async function getProjects(max,ps){if(!C.projects){C.projects=(await fvAll('/Projects',0,ps||500)).map(flat)}return max>0?C.projects.slice(0,max):C.projects}
+async function iterProjects(subpath,max,ps,prog){
+  var projs=await getProjects(max,ps);var all=[];
+  for(var i=0;i<projs.length;i++){
+    var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+    if(prog)prog('Project '+(i+1)+'/'+projs.length+' ('+pid+')',i/projs.length);
+    try{var items=await fvAll('/Projects/'+pid+subpath,0,100);items.forEach(function(item){var f=flat(item);f._projectId=pid;f._projectName=projs[i].projectName||'';all.push(f)})}catch(e){}
+  }
+  return all;
+}
+
+async function getFilteredProjects(max,ps){
+  var projs=await getProjects(max,ps);
+  var ptId=v('ptPick');
+  if(ptId)projs=projs.filter(function(pr){return String(pr.projectTypeId_native||pr.projectTypeId)===ptId});
+  return projs;
+}
+async function iterFilteredProjects(subpath,max,ps,prog){
+  var projs=await getFilteredProjects(max,ps);var all=[];
+  for(var i=0;i<projs.length;i++){
+    var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+    if(prog)prog('Project '+(i+1)+'/'+projs.length+' ('+pid+')',i/projs.length);
+    try{var items=await fvAll('/Projects/'+pid+subpath,0,100);items.forEach(function(item){var f=flat(item);f._projectId=pid;f._projectName=projs[i].projectName||'';all.push(f)})}catch(e){}
+  }
+  return all;
+}
+
+// ═══════════════════════════════════════
+//  DATASET RECIPES
+// ═══════════════════════════════════════
+var RECIPES=[
+  // ─── ORG-WIDE (no iteration) ───
+  {cat:'Org-Wide Datasets',ico:'green',nm:'All Projects',ds:'Full project/matter list with status, phase, dates. No iteration needed.',eps:['/Projects'],
+    run:async function(o,p){return(await fvAll('/Projects',0,o.ps,p)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'All Contacts',ds:'Every contact with name, email, phone, type.',eps:['/Contacts'],
+    run:async function(o,p){return(await fvAll('/Contacts',0,o.ps,p)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'All Tasks',ds:'Every task across the org — descriptions, due dates, assignees, statuses.',eps:['/Tasks'],
+    run:async function(o,p){return(await fvAll('/Tasks',0,o.ps,p)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'All Users',ds:'Every user in the org — names, roles, active status.',eps:['/Users'],
+    run:async function(o,p){return(await fvAll('/Users',0,o.ps,p)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Project Types & Sections',ds:'Maps every project type to its sections/selectors. Essential for understanding your Filevine schema.',eps:['/ProjectTypes','/ProjectTypes/{id}/Sections'],
+    run:async function(o,p){
+      if(!C.projectTypes)await warmCache();var rows=[];
+      for(var k=0;k<C.projectTypes.length;k++){var pt=C.projectTypes[k];var tid=pt.projectTypeId_native||pt.projectTypeId;if(!tid)continue;
+        var secs=await fvAll('/ProjectTypes/'+tid+'/Sections',100,100);
+        secs.forEach(function(s){rows.push({projectTypeName:pt.name||'',projectTypeId:tid,sectionName:s.name||'',selector:s.sectionSelector||s.selector||'',isCollection:s.isCollection||s.IsCollection||false,fieldCount:s.fields?s.fields.length:0})});
+      }return rows}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Org Teams & Roles',ds:'Teams and role definitions.',eps:['/OrgTeams','/OrgRoles'],
+    run:async function(o,p){var t=(await fvAll('/OrgTeams',0,100)).map(flat);var r=(await fvAll('/OrgRoles',0,100)).map(function(x){var f=flat(x);f._type='Role';return f});return t.concat(r)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Contact Types',ds:'All configured contact type categories.',eps:['/ContactTypes'],
+    run:async function(){return(await fvAll('/ContactTypes',0,100)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Custom Contact Metadata',ds:'Contact field definitions — custom field schema for your org.',eps:['/Contacts/Metadata'],
+    run:async function(){var r=await fvGet('/Contacts/Metadata');return r?[flat(r)]:[]}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Billing Codes & Rates',ds:'Billing codes, rate schedules, timekeeper classifications.',eps:['/Billing/Codes','/Billing/RateSchedules','/Billing/TimekeeperClassifications'],
+    run:async function(){var a=(await fvAll('/Billing/Codes',0,100)).map(function(x){var f=flat(x);f._type='Code';return f});var b=(await fvAll('/Billing/RateSchedules',0,100)).map(function(x){var f=flat(x);f._type='RateSchedule';return f});var c=(await fvAll('/Billing/TimekeeperClassifications',0,100)).map(function(x){var f=flat(x);f._type='TimekeeperClass';return f});return a.concat(b).concat(c)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Leads (Lead Docket)',ds:'All leads if Lead Docket is enabled.',eps:['/Leads'],
+    run:async function(o,p){return(await fvAll('/Leads',0,o.ps,p)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Reports',ds:'Available Filevine reports.',eps:['/Reports'],
+    run:async function(){return(await fvAll('/Reports',0,100)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Deadline Chain Types',ds:'All deadline chain type definitions.',eps:['/DeadlineChainTypes'],
+    run:async function(){return(await fvAll('/DeadlineChainTypes',0,100)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Document Series',ds:'Document series / template definitions configured in your org.',eps:['/DocumentSeries'],
+    run:async function(){return(await fvAll('/DocumentSeries',0,100)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Billing Items (Org-Wide)',ds:'All billing items across the entire org.',eps:['/Billing/Items'],
+    run:async function(o,p){return(await fvAll('/Billing/Items',0,o.ps,p)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Invoices (Org-Wide)',ds:'All invoices across the org.',eps:['/Billing/Invoices'],
+    run:async function(o,p){return(await fvAll('/Billing/Invoices',0,o.ps,p)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Billing Transactions (Org-Wide)',ds:'All billing transactions.',eps:['/Billing/Transactions'],
+    run:async function(o,p){return(await fvAll('/Billing/Transactions',0,o.ps,p)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Webhook Event Types',ds:'All subscribable webhook event types — useful for planning automations.',eps:['/Webhooks/EventTypes'],
+    run:async function(){return(await fvAll('/Webhooks/EventTypes',0,100)).map(flat)}},
+  {cat:'Org-Wide Datasets',ico:'green',nm:'Webhook Subscriptions',ds:'Active webhook subscriptions for your org.',eps:['/Webhooks'],
+    run:async function(){return(await fvAll('/Webhooks',0,100)).map(flat)}},
+
+  // ─── PER-PROJECT (auto-iterates — optional project type filter) ───
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Team Members',ds:'All team assignments across every project — who is on what case. Optionally filter by project type.',eps:['/Projects/{id}/Team'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Team',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Phase History',ds:'Phase transition history for every project.',eps:['/Projects/{id}/Phases'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Phases',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Project Vitals',ds:'Key metrics/vitals for every project.',eps:['/Projects/{id}/Vitals'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Vitals',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Project Contacts',ds:'All contacts linked to each project — clients, opposing counsel, etc.',eps:['/Projects/{id}/Contacts'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Contacts',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Notes',ds:'All notes across every project.',eps:['/Projects/{id}/Notes'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Notes',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Documents',ds:'Document metadata across every project — names, types, dates.',eps:['/Projects/{id}/Documents'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Documents',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Appointments',ds:'All calendar appointments across projects.',eps:['/Projects/{id}/Appointments'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Appointments',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Deadlines',ds:'All deadlines across every project.',eps:['/Projects/{id}/Deadlines'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Deadlines',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Deadline Chains',ds:'Deadline chain instances per project.',eps:['/Projects/{id}/DeadlineChains'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/DeadlineChains',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Chain Dates',ds:'Individual chain date records per project — the actual date entries within chains.',eps:['/Projects/{id}/ChainDates'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/ChainDates',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Activity Feed',ds:'Activity log for every project — who did what, when.',eps:['/Projects/{id}/Activity'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Activity',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Time Entries',ds:'Time entries across every project.',eps:['/Projects/{id}/TimeEntries'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/TimeEntries',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Comments',ds:'All comments across projects.',eps:['/Projects/{id}/Comments'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Comments',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Folders',ds:'Document folder structures per project.',eps:['/Projects/{id}/Folders'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Folders',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Mailroom',ds:'Mailroom items across projects.',eps:['/Projects/{id}/Mailroom'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Mailroom',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Share Links',ds:'Share links across all projects.',eps:['/Projects/{id}/ShareLinks'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/ShareLinks',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Emails',ds:'Email records logged to projects.',eps:['/Projects/{id}/Emails'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Emails',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Images',ds:'Image attachments per project.',eps:['/Projects/{id}/Images'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Images',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Conversations',ds:'Conversation / message threads logged per project.',eps:['/Projects/{id}/Conversations'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Conversations',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Billing Items (Per-Project)',ds:'Billing line items per project — expenses, time.',eps:['/Projects/{id}/Billing/Items'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Billing/Items',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Invoices (Per-Project)',ds:'Invoices linked to each project.',eps:['/Projects/{id}/Billing/Invoices'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Billing/Invoices',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Trust Funds',ds:'Trust/project fund transactions per project.',eps:['/Projects/{id}/Billing/Funds'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Billing/Funds',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Billing Vitals',ds:'Billing summary vitals per project.',eps:['/Projects/{id}/Billing/Vitals'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Billing/Vitals',o.mp,o.ps,p)}},
+  {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Project Tasks',ds:'Tasks scoped to each project (vs org-wide task list).',eps:['/Projects/{id}/Tasks'],needsPtFilter:true,
+    run:async function(o,p){return await iterFilteredProjects('/Tasks',o.mp,o.ps,p)}},
+
+  // ─── SECTION DATA (dynamic picker) ───
+  {cat:'Section / Collection Data',ico:'amber',nm:'Collection Data (Pick Section)',ds:'Pull a specific collection section across projects. Select project type + section below.',eps:['/Projects/{id}/Collections/{selector}'],needsSelector:true,needsPtFilter:true,
+    run:async function(o,p){var sel=v('selPick');if(!sel){toast('Pick a section first','err');return[]}return await iterFilteredProjects('/Collections/'+sel,o.mp,o.ps,p)}},
+  {cat:'Section / Collection Data',ico:'amber',nm:'Form Data (Pick Section)',ds:'Pull a specific static form section across projects. Select project type + section below.',eps:['/Projects/{id}/Forms/{selector}'],needsSelector:true,needsPtFilter:true,
+    run:async function(o,p){var sel=v('selPick');if(!sel){toast('Pick a section first','err');return[]}return await iterFilteredProjects('/Forms/'+sel,o.mp,o.ps,p)}},
+  {cat:'Section / Collection Data',ico:'amber',nm:'All Collection Sections (Full Pull)',ds:'Discovers ALL collection sections then pulls data for every project. Big pull — use filters to limit.',eps:['/ProjectTypes/{id}/Sections','/Projects/{id}/Collections/{sel}'],needsPtFilter:true,
+    run:async function(o,p){
+      if(!C.selectors)await warmCache();
+      var ptId=v('ptPick');
+      var colls=C.selectors.filter(function(s){return s.isColl&&(!ptId||String(s.ptId)===ptId)});
+      var projs=await getFilteredProjects(o.mp,o.ps);var all=[];
+      for(var si=0;si<colls.length;si++){
+        for(var pi=0;pi<projs.length;pi++){var pid=projs[pi].projectId_native||projs[pi].projectId;if(!pid)continue;
+          if(p)p(colls[si].label+' — project '+(pi+1)+'/'+projs.length,(si*projs.length+pi)/(colls.length*projs.length));
+          try{var items=await fvAll('/Projects/'+pid+'/Collections/'+colls[si].val,0,50);items.forEach(function(item){var f=flat(item);f._projectId=pid;f._projectName=projs[pi].projectName||'';f._section=colls[si].val;f._sectionName=colls[si].label;all.push(f)})}catch(e){}
+        }
+      }return all}},
+  {cat:'Section / Collection Data',ico:'amber',nm:'All Form Sections (Full Pull)',ds:'Discovers ALL static form sections then pulls data for every project. Big pull — use filters to limit.',eps:['/ProjectTypes/{id}/Sections','/Projects/{id}/Forms/{sel}'],needsPtFilter:true,
+    run:async function(o,p){
+      if(!C.selectors)await warmCache();
+      var ptId=v('ptPick');
+      var forms=C.selectors.filter(function(s){return !s.isColl&&(!ptId||String(s.ptId)===ptId)});
+      var projs=await getFilteredProjects(o.mp,o.ps);var all=[];
+      for(var si=0;si<forms.length;si++){
+        for(var pi=0;pi<projs.length;pi++){var pid=projs[pi].projectId_native||projs[pi].projectId;if(!pid)continue;
+          if(p)p(forms[si].label+' — project '+(pi+1)+'/'+projs.length,(si*projs.length+pi)/(forms.length*projs.length));
+          try{var d=await fvGet('/Projects/'+pid+'/Forms/'+forms[si].val);if(d){var f=flat(d);f._projectId=pid;f._projectName=projs[pi].projectName||'';f._section=forms[si].val;f._sectionName=forms[si].label;all.push(f)}}catch(e){}
+        }
+      }return all}},
+
+  // ─── SMART COMPOSITES (Multi-Join) ───
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Full Case Roster',ds:'Projects + Team + Vitals + Current Phase + Primary Contact. The master case list. Optionally filter by project type.',eps:['/Projects','/Projects/{id}/Team','/Projects/{id}/Phases','/Projects/{id}/Vitals'],needsPtFilter:true,
+    run:async function(o,p){
+      var projs=await getFilteredProjects(o.mp,o.ps);
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Enriching '+(i+1)+'/'+projs.length,i/projs.length);
+        try{var[tm,ph,vt]=await Promise.all([fvAll('/Projects/'+pid+'/Team',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Phases',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Vitals',0,50).catch(function(){return[]})]);
+          projs[i].teamCount=tm.length;projs[i].teamMembers=tm.map(function(t){return t.fullName||t.name||''}).join(', ');
+          projs[i].currentPhase=ph.length?(ph[ph.length-1].name||ph[ph.length-1].phaseName||''):'';projs[i].phaseCount=ph.length;
+          if(vt.length){var vf=flat(vt[0]);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+        }catch(e){}}
+      return projs}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Task Board',ds:'All Tasks + Project name + Assignee. Ready for a Domo task management card.',eps:['/Tasks','/Projects'],
+    run:async function(o,p){
+      if(p)p('Fetching tasks…',0);var tasks=(await fvAll('/Tasks',0,o.ps)).map(flat);
+      if(p)p('Fetching projects…',0.5);var projs=await getProjects(0,500);
+      var pMap={};projs.forEach(function(pr){var id=pr.projectId_native||pr.projectId;if(id)pMap[id]=pr});
+      tasks.forEach(function(t){var pid=t.projectId_native||t.projectId;if(pid&&pMap[pid]){t.projectName=pMap[pid].projectName||'';t.projectPhase=pMap[pid].phase||''}});
+      return tasks}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Client Directory',ds:'Contacts + Addresses + Emails + Phones merged into one row per contact.',eps:['/Contacts','/Contacts/{id}/Addresses','/Contacts/{id}/Emails','/Contacts/{id}/Phones'],
+    run:async function(o,p){
+      if(p)p('Fetching contacts…',0);var contacts=(await fvAll('/Contacts',0,o.ps)).map(flat);
+      for(var i=0;i<Math.min(contacts.length,500);i++){var cid=contacts[i].contactId_native||contacts[i].contactId;if(!cid)continue;
+        if(p)p('Enriching '+(i+1)+'/'+contacts.length,i/contacts.length);
+        try{var[addr,em,ph]=await Promise.all([fvAll('/Contacts/'+cid+'/Addresses',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/Emails',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/Phones',0,10).catch(function(){return[]})]);
+          contacts[i].addresses=addr.map(function(a){return(a.line1||'')+(a.city?' '+a.city:'')}).join(' | ');
+          contacts[i].emails=em.map(function(e){return e.email||e.address||''}).join(', ');
+          contacts[i].phones=ph.map(function(p){return p.number||p.phone||''}).join(', ');
+        }catch(e){}}
+      return contacts}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Client Directory + Custom Tabs',ds:'Contacts + Addresses + Emails + Phones + Custom Contact Tabs merged per contact.',eps:['/Contacts','/Contacts/{id}/Addresses','/Contacts/{id}/Emails','/Contacts/{id}/Phones','/Contacts/{id}/CustomTabs'],
+    run:async function(o,p){
+      if(p)p('Fetching contacts…',0);var contacts=(await fvAll('/Contacts',0,o.ps)).map(flat);
+      for(var i=0;i<Math.min(contacts.length,500);i++){var cid=contacts[i].contactId_native||contacts[i].contactId;if(!cid)continue;
+        if(p)p('Enriching '+(i+1)+'/'+contacts.length,i/contacts.length);
+        try{var[addr,em,ph,tabs]=await Promise.all([fvAll('/Contacts/'+cid+'/Addresses',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/Emails',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/Phones',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/CustomTabs',0,10).catch(function(){return[]})]);
+          contacts[i].addresses=addr.map(function(a){return(a.line1||'')+(a.city?' '+a.city:'')}).join(' | ');
+          contacts[i].emails=em.map(function(e){return e.email||e.address||''}).join(', ');
+          contacts[i].phones=ph.map(function(p){return p.number||p.phone||''}).join(', ');
+          if(tabs.length)tabs.forEach(function(tab){var tf=flat(tab);Object.keys(tf).forEach(function(k){contacts[i]['ctab_'+k]=tf[k]})});
+        }catch(e){}}
+      return contacts}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Deadline Dashboard',ds:'All Deadlines + Chains + Chain Dates + Project context joined together.',eps:['/Projects/{id}/Deadlines','/Projects/{id}/DeadlineChains','/Projects/{id}/ChainDates'],needsPtFilter:true,
+    run:async function(o,p){
+      var projs=await getFilteredProjects(o.mp,o.ps);var all=[];
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Deadlines '+(i+1)+'/'+projs.length,i/projs.length);
+        try{var[dl,ch,cd]=await Promise.all([fvAll('/Projects/'+pid+'/Deadlines',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/DeadlineChains',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/ChainDates',0,50).catch(function(){return[]})]);
+          dl.forEach(function(d){var f=flat(d);f._projectId=pid;f._projectName=projs[i].projectName||'';f._type='Deadline';all.push(f)});
+          ch.forEach(function(c){var f=flat(c);f._projectId=pid;f._projectName=projs[i].projectName||'';f._type='Chain';all.push(f)});
+          cd.forEach(function(c){var f=flat(c);f._projectId=pid;f._projectName=projs[i].projectName||'';f._type='ChainDate';all.push(f)});
+        }catch(e){}}
+      return all}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Communication Log',ds:'Notes + Comments + Activity + Emails merged per project — full communication history.',eps:['/Projects/{id}/Notes','/Projects/{id}/Comments','/Projects/{id}/Activity','/Projects/{id}/Emails'],needsPtFilter:true,
+    run:async function(o,p){
+      var projs=await getFilteredProjects(o.mp,o.ps);var all=[];
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Comms '+(i+1)+'/'+projs.length,i/projs.length);
+        try{var[notes,comm,act,emails]=await Promise.all([fvAll('/Projects/'+pid+'/Notes',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Comments',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Activity',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Emails',0,50).catch(function(){return[]})]);
+          notes.forEach(function(n){var f=flat(n);f._projectId=pid;f._projectName=projs[i].projectName||'';f._source='Note';all.push(f)});
+          comm.forEach(function(c){var f=flat(c);f._projectId=pid;f._projectName=projs[i].projectName||'';f._source='Comment';all.push(f)});
+          act.forEach(function(a){var f=flat(a);f._projectId=pid;f._projectName=projs[i].projectName||'';f._source='Activity';all.push(f)});
+          emails.forEach(function(e){var f=flat(e);f._projectId=pid;f._projectName=projs[i].projectName||'';f._source='Email';all.push(f)});
+        }catch(e){}}
+      return all}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Billing Summary',ds:'Billing Items + Invoices + Transactions + Trust Funds per project.',eps:['/Projects/{id}/Billing/Items','/Projects/{id}/Billing/Invoices','/Projects/{id}/Billing/Funds'],needsPtFilter:true,
+    run:async function(o,p){
+      var projs=await getFilteredProjects(o.mp,o.ps);var all=[];
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Billing '+(i+1)+'/'+projs.length,i/projs.length);
+        try{var[items,inv,funds]=await Promise.all([fvAll('/Projects/'+pid+'/Billing/Items',0,100).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Billing/Invoices',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Billing/Funds',0,50).catch(function(){return[]})]);
+          items.forEach(function(x){var f=flat(x);f._projectId=pid;f._projectName=projs[i].projectName||'';f._billType='Item';all.push(f)});
+          inv.forEach(function(x){var f=flat(x);f._projectId=pid;f._projectName=projs[i].projectName||'';f._billType='Invoice';all.push(f)});
+          funds.forEach(function(x){var f=flat(x);f._projectId=pid;f._projectName=projs[i].projectName||'';f._billType='Fund';all.push(f)});
+        }catch(e){}}
+      return all}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Intake Pipeline',ds:'Leads + converted project info. Tracks lead-to-case conversion funnel.',eps:['/Leads','/Projects'],
+    run:async function(o,p){
+      if(p)p('Fetching leads…',0);var leads=(await fvAll('/Leads',0,o.ps)).map(flat);
+      if(p)p('Fetching projects…',0.5);var projs=await getProjects(0,500);
+      var pMap={};projs.forEach(function(pr){var id=pr.projectId_native||pr.projectId;if(id)pMap[id]=pr});
+      leads.forEach(function(l){var pid=l.projectId_native||l.projectId;if(pid&&pMap[pid]){l.convertedProjectName=pMap[pid].projectName||'';l.convertedProjectPhase=pMap[pid].phase||'';l.convertedProjectType=pMap[pid].projectTypeName||pMap[pid].projectTypeId_native||'';l.isConverted=true}else{l.isConverted=false}});
+      return leads}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Case Lifecycle',ds:'Projects + Phases + Deadlines + Vitals + Time Entries — full case timeline view.',eps:['/Projects','/Projects/{id}/Phases','/Projects/{id}/Deadlines','/Projects/{id}/Vitals','/Projects/{id}/TimeEntries'],needsPtFilter:true,
+    run:async function(o,p){
+      var projs=await getFilteredProjects(o.mp,o.ps);
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Lifecycle '+(i+1)+'/'+projs.length,i/projs.length);
+        try{var[ph,dl,vt,te]=await Promise.all([fvAll('/Projects/'+pid+'/Phases',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Deadlines',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Vitals',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/TimeEntries',0,100).catch(function(){return[]})]);
+          projs[i].currentPhase=ph.length?(ph[ph.length-1].name||ph[ph.length-1].phaseName||''):'';projs[i].phaseCount=ph.length;
+          projs[i].deadlineCount=dl.length;projs[i].nextDeadline=dl.length?dl.sort(function(a,b){return(a.dueDate||'').localeCompare(b.dueDate||'')})[0].dueDate||'':'';
+          if(vt.length){var vf=flat(vt[0]);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+          projs[i].totalTimeEntries=te.length;projs[i].totalHours=te.reduce(function(s,t){return s+(t.hours||t.duration||0)},0);
+        }catch(e){}}
+      return projs}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Staff Utilization',ds:'Users + their Tasks + Time Entries. Shows who is doing what, how much time logged.',eps:['/Users','/Tasks'],
+    run:async function(o,p){
+      if(p)p('Fetching users…',0);var users=(await fvAll('/Users',0,500)).map(flat);
+      if(p)p('Fetching tasks…',0.3);var tasks=(await fvAll('/Tasks',0,o.ps)).map(flat);
+      if(p)p('Fetching billing items…',0.6);var billingItems=(await fvAll('/Billing/Items',0,o.ps)).map(flat);
+      var taskMap={},timeMap={};
+      tasks.forEach(function(t){var uid=t.assigneeId_native||t.assigneeId||t.assignedToId;if(uid){if(!taskMap[uid])taskMap[uid]=[];taskMap[uid].push(t)}});
+      billingItems.forEach(function(b){var uid=b.userId_native||b.userId||b.timekeeperId;if(uid){if(!timeMap[uid])timeMap[uid]=[];timeMap[uid].push(b)}});
+      users.forEach(function(u){var uid=u.userId_native||u.userId;
+        var uTasks=taskMap[uid]||[];u.totalTasks=uTasks.length;u.openTasks=uTasks.filter(function(t){return !t.completedDate&&!t.completed}).length;u.overdueTasks=uTasks.filter(function(t){return t.dueDate&&new Date(t.dueDate)<new Date()&&!t.completedDate}).length;
+        var uTime=timeMap[uid]||[];u.totalBillingItems=uTime.length;u.totalHours=uTime.reduce(function(s,b){return s+(b.hours||b.duration||0)},0);
+      });
+      return users}},
+  {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Document Inventory',ds:'Documents + Folders + Project context — full document catalog across all projects.',eps:['/Projects/{id}/Documents','/Projects/{id}/Folders'],needsPtFilter:true,
+    run:async function(o,p){
+      var projs=await getFilteredProjects(o.mp,o.ps);var all=[];
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Docs '+(i+1)+'/'+projs.length,i/projs.length);
+        try{var[docs,folders]=await Promise.all([fvAll('/Projects/'+pid+'/Documents',0,100).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Folders',0,50).catch(function(){return[]})]);
+          var fMap={};folders.forEach(function(f){var fid=f.folderId_native||f.folderId||f.id;if(fid)fMap[fid]=f.name||f.folderName||''});
+          docs.forEach(function(d){var f=flat(d);f._projectId=pid;f._projectName=projs[i].projectName||'';f._folderName=fMap[f.folderId_native||f.folderId]||'';all.push(f)});
+        }catch(e){}}
+      return all}},
+];
+
+// ═══════════════════════════════════════
+//  RENDER RECIPES
+// ═══════════════════════════════════════
+function renderRecipes(){
+  var q=(gi('rcSearch')?gi('rcSearch').value:'').toLowerCase();
+  var filtered=RECIPES.filter(function(r){return !q||r.nm.toLowerCase().includes(q)||r.ds.toLowerCase().includes(q)||r.cat.toLowerCase().includes(q)});
+  gi('rcCount').textContent=RECIPES.length;
+  var cats={};filtered.forEach(function(r){if(!cats[r.cat])cats[r.cat]=[];cats[r.cat].push(r)});
+  var html='';
+  Object.keys(cats).forEach(function(cat){
+    html+='<div class="cat-hd">'+esc(cat)+' ('+cats[cat].length+')</div>';
+    cats[cat].forEach(function(r){
+      var gx=RECIPES.indexOf(r);var sel=PIPE.idx===gx;
+      html+='<div class="rc '+(sel?'sel':'')+'" onclick="selectRecipe('+gx+')">';
+      html+='<div class="rc-ico '+r.ico+'">'+{green:'📊',blue:'🔄',amber:'📋',purple:'⭐',red:'🔗'}[r.ico]+'</div>';
+      html+='<div class="rc-bd"><div class="rc-nm">'+esc(r.nm)+'</div><div class="rc-ds">'+esc(r.ds)+'</div>';
+      html+='<div class="rc-tg">'+r.eps.map(function(e){return '<span class="rc-ep">'+esc(e)+'</span>'}).join('')+'</div>';
+      html+='</div></div>';
+    });
+  });
+  gi('rcList').innerHTML=html;
+}
+
+function selectRecipe(idx){
+  PIPE.idx=idx;gi('fetchBtn').disabled=false;
+  var r=RECIPES[idx];
+  var showPicker=r.needsSelector||r.needsPtFilter;
+  gi('selectorPicker').style.display=showPicker?'':'none';
+  gi('selPickerWrap').style.display=r.needsSelector?'':'none';
+  gi('ptPickerWrap').style.display=(r.needsPtFilter||r.needsSelector)?'':'none';
+  renderRecipes();
+}
+
+// ═══════════════════════════════════════
+//  FETCH + PUSH
+// ═══════════════════════════════════════
+async function recipeFetch(){
+  if(PIPE.idx===null){toast('Select a dataset first','err');return}
+  if(!S.fvConnected){toast('Connect to Filevine first','err');return}
+  var r=RECIPES[PIPE.idx];
+  var btn=gi('fetchBtn');btn.disabled=true;
+  gi('progWrap').style.display='';gi('progFill').style.width='0%';gi('progTxt').textContent='Starting…';
+
+  var opts={mp:parseInt(v('maxProj'))||0,ps:parseInt(gi('pageSize').value)||500};
+  var items=[];
+  try{
+    items=await r.run(opts,function(msg,pct){
+      btn.innerHTML='<span class="spin"></span> '+esc(String(msg));
+      if(typeof pct==='number'){gi('progFill').style.width=Math.round(pct*100)+'%';gi('progTxt').textContent=msg}
+    });
+  }catch(e){toast('Fetch error: '+e.message,'err')}
+
+  if(!items||!items.length){toast('No data returned','err');btn.disabled=false;btn.innerHTML='Fetch Dataset';gi('progWrap').style.display='none';return}
+
+  items=items.map(flat);PIPE.items=items;
+  var keys=Object.keys(items[0]);
+  PIPE.cols=keys.map(function(k){var s=items[0][k];var t='STRING';if(typeof s==='number')t=Number.isInteger(s)?'LONG':'DOUBLE';if(typeof s==='string'&&/^\d{4}-\d{2}-\d{2}/.test(s))t=s.includes('T')?'DATETIME':'DATE';return{name:k,type:t}});
+
+  gi('xferStep1').style.display='none';gi('xferStep2').style.display='';
+  setPushMode('new');
+  gi('pipeTag').textContent=r.nm;
+  gi('pipeInfo').innerHTML=items.length+' rows · '+PIPE.cols.length+' columns <span class="tg tg-ok" style="margin-left:6px">LIVE</span>';
+  gi('pipeDsName').value='Filevine — '+r.nm;
+  gi('colCount').textContent=PIPE.cols.length;
+  gi('progFill').style.width='100%';gi('progTxt').textContent='Done — '+items.length+' rows fetched';
+
+  var pvK=keys.slice(0,7);
+  var h='<table class="dt"><thead><tr>'+pvK.map(function(k){return '<th>'+k+'</th>'}).join('')+'</tr></thead><tbody>';
+  items.slice(0,5).forEach(function(row){h+='<tr>'+pvK.map(function(k){var vl=row[k];if(typeof vl==='object')vl=JSON.stringify(vl).substring(0,50);return '<td>'+esc(String(vl==null?'':vl))+'</td>'}).join('')+'</tr>'});
+  if(items.length>5)h+='<tr><td colspan="'+pvK.length+'" style="text-align:center;color:var(--txm)">… and '+(items.length-5)+' more</td></tr>';
+  gi('pipePreview').innerHTML=h+'</tbody></table>';
+  gi('pipeSchema').innerHTML=PIPE.cols.map(function(c){return '<div style="display:flex;justify-content:space-between;padding:2px 0"><span>'+c.name+'</span><span style="color:var(--ac)">'+c.type+'</span></div>'}).join('');
+
+  btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Fetch Dataset';
+}
+
+async function pipePush(){
+  var btn=gi('pushBtn');
+  if(PIPE.mode==='update'){
+    // UPDATE EXISTING
+    if(!PIPE.existDsId){toast('Select an existing dataset','err');return}
+    if(!PIPE.items.length){toast('No data','err');return}
+    btn.disabled=true;
+    var wm=v('writeMode')||'REPLACE';
+    btn.innerHTML='<span class="spin"></span> Uploading '+PIPE.items.length+' rows ('+wm+')…';
+    if(S.domoConnected){
+      // If REPLACE, update schema first to match new columns
+      if(wm==='REPLACE'){
+        var schemaOk=await domoFetch('PUT','/v1/datasets/'+PIPE.existDsId,{name:gi('existDsName').textContent,schema:{columns:PIPE.cols}});
+        if(!schemaOk){toast('Schema update failed — columns may not match','err')}
+      }
+      var ok=await domoFetch('PUT','/v1/datasets/'+PIPE.existDsId+'/data',jsonToCsv(PIPE.items),'text/csv');
+      if(ok){
+        PIPE.lastDsId=PIPE.existDsId;PIPE.lastDsName=gi('existDsName').textContent;
+        toast('Updated!','ok');gi('xferStep2').style.display='none';gi('xferStep3').style.display='';
+        gi('doneName').textContent=PIPE.lastDsName;
+        gi('doneInfo').textContent=PIPE.items.length+' rows · '+PIPE.cols.length+' cols · '+wm+' · ID: '+PIPE.existDsId;
+      }else toast('Upload failed','err')
+    }else{toast('Connect to Domo first','err')}
+  }else{
+    // CREATE NEW
+    var dsName=v('pipeDsName');if(!dsName){toast('Name required','err');return}if(!PIPE.items.length){toast('No data','err');return}
+    btn.disabled=true;btn.innerHTML='<span class="spin"></span> Creating…';
+    if(S.domoConnected){
+      var res=await domoFetch('POST','/v1/datasets',{name:dsName,description:'Filevine '+RECIPES[PIPE.idx].nm,schema:{columns:PIPE.cols}});
+      if(res&&res.id){toast('Dataset created','ok');btn.innerHTML='<span class="spin"></span> Uploading '+PIPE.items.length+' rows…';var ok=await domoFetch('PUT','/v1/datasets/'+res.id+'/data',jsonToCsv(PIPE.items),'text/csv');
+        if(ok){PIPE.lastDsId=res.id;PIPE.lastDsName=dsName;toast('Uploaded!','ok');gi('xferStep2').style.display='none';gi('xferStep3').style.display='';gi('doneName').textContent=dsName;gi('doneInfo').textContent=PIPE.items.length+' rows · '+PIPE.cols.length+' cols · ID: '+res.id}else toast('Upload failed','err')
+      }else toast('Create failed','err')
+    }else{S.datasets.unshift({id:'ds_'+Date.now(),name:dsName,type:'api',rows:PIPE.items.length,schema:{columns:PIPE.cols},owner:{displayName:'You'},updatedAt:new Date().toISOString()});gi('dsCount').textContent=S.datasets.length;PIPE.lastDsId='ds_demo';PIPE.lastDsName=dsName;toast('Created (demo)','ok');gi('xferStep2').style.display='none';gi('xferStep3').style.display='';gi('doneName').textContent=dsName;gi('doneInfo').textContent=PIPE.items.length+' rows · Demo'}
+  }
+  btn.disabled=false;btn.innerHTML=PIPE.mode==='update'?'Update Dataset':'Create Dataset &amp; Push to Domo';
+}
+
+// ── PUSH MODE TOGGLE ──
+function setPushMode(mode){
+  PIPE.mode=mode;
+  gi('pushModeNew').style.display=mode==='new'?'':'none';
+  gi('pushModeUpdate').style.display=mode==='update'?'':'none';
+  gi('modeNewBtn').className='btn '+(mode==='new'?'bp':'bs')+' bsm';
+  gi('modeUpdateBtn').className='btn '+(mode==='update'?'bp':'bs')+' bsm';
+  gi('pushBtn').innerHTML=mode==='update'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Update Dataset':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg> Create Dataset &amp; Push to Domo';
+  if(mode==='update')loadExistDs();
+}
+
+// ── EXISTING DATASET PICKER ──
+var _existDs=[];
+async function loadExistDs(){
+  if(!S.domoConnected){gi('existDsHint').textContent='Connect to Domo in Settings first';return}
+  gi('existDsHint').textContent='Loading…';
+  var d=await domoFetch('GET','/v1/datasets?limit=50&offset=0');
+  if(!d||!d.length){d=S.datasets||[]}
+  _existDs=d;
+  gi('existDsHint').textContent=d.length+' datasets available';
+  renderExistDs(d);
+}
+function renderExistDs(list){
+  var dd=gi('existDsDropdown');
+  dd.innerHTML=list.slice(0,30).map(function(d){return '<div style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--bd-lt);transition:var(--tr)" onmouseenter="this.style.background=\'var(--bg-hv)\'" onmouseleave="this.style.background=\'#fff\'" onclick="pickExistDs(\''+d.id+'\')"><div style="font-weight:500;color:var(--tx)">'+esc(d.name)+'</div><div style="font-size:10px;color:var(--txm);margin-top:1px">'+(d.rows||0).toLocaleString()+' rows · '+(d.schema?d.schema.columns.length:'?')+' cols · ID: '+d.id+'</div></div>'}).join('');
+}
+function filterExistDs(){
+  var q=v('existDsSearch').toLowerCase();
+  var filtered=_existDs.filter(function(d){return d.name.toLowerCase().includes(q)||d.id.includes(q)});
+  renderExistDs(filtered);
+  gi('existDsDropdown').style.display='';
+}
+function pickExistDs(id){
+  var ds=_existDs.find(function(d){return d.id===id});if(!ds)return;
+  PIPE.existDsId=id;
+  gi('existDsName').textContent=ds.name;
+  gi('existDsMeta').textContent=(ds.rows||0).toLocaleString()+' rows · '+(ds.schema?ds.schema.columns.length:'?')+' cols · ID: '+id;
+  gi('existDsSelected').style.display='';
+  gi('existDsDropdown').style.display='none';
+  gi('existDsSearch').value='';
+}
+function clearExistDs(){PIPE.existDsId=null;gi('existDsSelected').style.display='none';gi('existDsSearch').value=''}
+// close dropdown on outside click
+document.addEventListener('click',function(e){var dd=gi('existDsDropdown');if(dd&&!dd.contains(e.target)&&e.target.id!=='existDsSearch')dd.style.display='none'});
+
+// ── REFRESH: re-fetch same recipe, push to same dataset ──
+async function pipeRefresh(){
+  if(PIPE.idx===null||!PIPE.lastDsId){toast('No dataset to refresh','err');return}
+  if(!S.fvConnected){toast('Connect to Filevine first','err');return}
+  var r=RECIPES[PIPE.idx];
+  var btn=gi('refreshBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Re-fetching…';
+  gi('xferStep3').querySelector('.ps').textContent='Refreshing…';
+  var opts={mp:parseInt(v('maxProj'))||0,ps:parseInt(gi('pageSize').value)||500};
+  var items=[];
+  try{items=await r.run(opts,function(msg,pct){btn.innerHTML='<span class="spin"></span> '+esc(String(msg))})}catch(e){toast('Fetch error: '+e.message,'err')}
+  if(!items||!items.length){toast('No data returned','err');btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Refresh — Re-fetch &amp; Update';return}
+  items=items.map(flat);PIPE.items=items;
+  var keys=Object.keys(items[0]);PIPE.cols=keys.map(function(k){var s=items[0][k];var t='STRING';if(typeof s==='number')t=Number.isInteger(s)?'LONG':'DOUBLE';if(typeof s==='string'&&/^\d{4}-\d{2}-\d{2}/.test(s))t=s.includes('T')?'DATETIME':'DATE';return{name:k,type:t}});
+  btn.innerHTML='<span class="spin"></span> Uploading '+items.length+' rows…';
+  if(S.domoConnected){
+    var schemaOk=await domoFetch('PUT','/v1/datasets/'+PIPE.lastDsId,{name:PIPE.lastDsName,schema:{columns:PIPE.cols}});
+    var ok=await domoFetch('PUT','/v1/datasets/'+PIPE.lastDsId+'/data',jsonToCsv(items),'text/csv');
+    if(ok){toast('Refreshed!','ok');gi('doneInfo').textContent=items.length+' rows · '+PIPE.cols.length+' cols · REFRESHED '+new Date().toLocaleTimeString()+' · ID: '+PIPE.lastDsId}else toast('Upload failed','err')
+  }else{toast('Refreshed (demo)','ok');gi('doneInfo').textContent=items.length+' rows · Refreshed (demo) '+new Date().toLocaleTimeString()}
+  btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Refresh — Re-fetch &amp; Update';
+}
+
+// ── CLONE: same recipe, create a new dataset copy ──
+async function pipeClone(){
+  if(PIPE.idx===null||!PIPE.items.length){toast('Nothing to clone','err');return}
+  PIPE.mode='new';
+  gi('xferStep3').style.display='none';gi('xferStep2').style.display='';
+  setPushMode('new');
+  gi('pipeDsName').value=(PIPE.lastDsName||'Filevine — '+RECIPES[PIPE.idx].nm)+' (Copy)';
+}
+
+function xferReset(){PIPE.idx=null;PIPE.items=[];PIPE.cols=[];PIPE.mode='new';PIPE.existDsId=null;gi('xferStep1').style.display='';gi('xferStep2').style.display='none';gi('xferStep3').style.display='none';gi('fetchBtn').disabled=true;gi('progWrap').style.display='none';gi('selectorPicker').style.display='none';renderRecipes()}
+
+// ═══════════════════════════════════════
+//  DATASETS PAGE
+// ═══════════════════════════════════════
+async function loadDs(){if(S.domoConnected){gi('dsWrap').innerHTML='<div class="empty"><span class="spin"></span> Loading…</div>';var d=await domoFetch('GET','/v1/datasets?limit=50&offset=0')||[];if(d.length){S.datasets=d;gi('dsCount').textContent=d.length;renderDs(d);return}toast('No datasets','err')}if(S.datasets.length)renderDs(S.datasets);else gi('dsWrap').innerHTML='<div class="empty">Connect to Domo in Settings</div>'}
+function renderDs(list){if(!list.length){gi('dsWrap').innerHTML='<div class="empty">No datasets</div>';return}var h='<table class="dt"><thead><tr><th>Name</th><th>Type</th><th>Rows</th><th>Cols</th><th>Updated</th><th>Owner</th></tr></thead><tbody>';list.forEach(function(d){h+='<tr><td class="dn">'+esc(d.name)+'</td><td><span class="tg tg-d">'+(d.type||'api')+'</span></td><td class="dmn">'+(d.rows||0).toLocaleString()+'</td><td class="dmn">'+(d.schema?d.schema.columns.length:'—')+'</td><td>'+(d.updatedAt?new Date(d.updatedAt).toLocaleDateString():'—')+'</td><td>'+esc(d.owner?d.owner.displayName||'':'—')+'</td></tr>'});gi('dsWrap').innerHTML=h+'</tbody></table>'}
+function filterDs(){var q=v('dsSearch').toLowerCase();renderDs(S.datasets.filter(function(d){return d.name.toLowerCase().includes(q)}))}
+function openModal(){gi('mdl').classList.add('show')}function closeModal(){gi('mdl').classList.remove('show')}
+function addCol(){var b=gi('schema'),r=document.createElement('div');r.className='fr';r.style.marginBottom='6px';r.innerHTML='<input class="fi" placeholder="Column name"><select class="fs"><option>STRING</option><option>LONG</option><option>DOUBLE</option><option>DATE</option><option>DATETIME</option></select>';b.appendChild(r)}
+async function createDs(){var name=v('newName');if(!name){toast('Name required','err');return}var cols=[];gi('schema').querySelectorAll('.fr').forEach(function(r){var n=r.querySelector('input').value.trim(),t=r.querySelector('select').value;if(n)cols.push({name:n,type:t})});if(S.domoConnected){var res=await domoFetch('POST','/v1/datasets',{name:name,description:v('newDesc'),schema:{columns:cols}});if(res){toast('Created','ok');closeModal();loadDs();return}}S.datasets.unshift({id:'ds_'+Date.now(),name:name,type:'api',rows:0,schema:{columns:cols},owner:{displayName:'You'},updatedAt:new Date().toISOString()});gi('dsCount').textContent=S.datasets.length;renderDs(S.datasets);toast('Created','ok');closeModal()}
+
+// ═══════════════════════════════════════
+//  FILEVINE BROWSE — AUTO-RESOLVE
+// ═══════════════════════════════════════
+var BROWSE_ENDPOINTS={
+  org:[
+    {label:'Projects',path:'/Projects'},
+    {label:'Contacts',path:'/Contacts'},
+    {label:'Tasks',path:'/Tasks'},
+    {label:'Users',path:'/Users'},
+    {label:'Project Types',path:'/ProjectTypes'},
+    {label:'Contact Types',path:'/ContactTypes'},
+    {label:'Leads',path:'/Leads'},
+    {label:'Reports',path:'/Reports'},
+    {label:'Org Teams',path:'/OrgTeams'},
+    {label:'Org Roles',path:'/OrgRoles'},
+    {label:'Billing Codes',path:'/Billing/Codes'},
+    {label:'Billing Rate Schedules',path:'/Billing/RateSchedules'},
+    {label:'Billing Items',path:'/Billing/Items'},
+    {label:'Billing Invoices',path:'/Billing/Invoices'},
+    {label:'Billing Transactions',path:'/Billing/Transactions'},
+    {label:'Deadline Chain Types',path:'/DeadlineChainTypes'},
+    {label:'Document Series',path:'/DocumentSeries'},
+    {label:'Webhook Event Types',path:'/Webhooks/EventTypes'},
+    {label:'Webhooks',path:'/Webhooks'},
+  ],
+  project:[
+    {label:'Team Members',path:'/Projects/{projectId}/Team'},
+    {label:'Phases',path:'/Projects/{projectId}/Phases'},
+    {label:'Vitals',path:'/Projects/{projectId}/Vitals'},
+    {label:'Contacts',path:'/Projects/{projectId}/Contacts'},
+    {label:'Notes',path:'/Projects/{projectId}/Notes'},
+    {label:'Documents',path:'/Projects/{projectId}/Documents'},
+    {label:'Tasks',path:'/Projects/{projectId}/Tasks'},
+    {label:'Appointments',path:'/Projects/{projectId}/Appointments'},
+    {label:'Deadlines',path:'/Projects/{projectId}/Deadlines'},
+    {label:'Deadline Chains',path:'/Projects/{projectId}/DeadlineChains'},
+    {label:'Chain Dates',path:'/Projects/{projectId}/ChainDates'},
+    {label:'Activity',path:'/Projects/{projectId}/Activity'},
+    {label:'Time Entries',path:'/Projects/{projectId}/TimeEntries'},
+    {label:'Comments',path:'/Projects/{projectId}/Comments'},
+    {label:'Folders',path:'/Projects/{projectId}/Folders'},
+    {label:'Mailroom',path:'/Projects/{projectId}/Mailroom'},
+    {label:'Emails',path:'/Projects/{projectId}/Emails'},
+    {label:'Images',path:'/Projects/{projectId}/Images'},
+    {label:'Conversations',path:'/Projects/{projectId}/Conversations'},
+    {label:'Share Links',path:'/Projects/{projectId}/ShareLinks'},
+    {label:'Billing Items',path:'/Projects/{projectId}/Billing/Items'},
+    {label:'Billing Invoices',path:'/Projects/{projectId}/Billing/Invoices'},
+    {label:'Trust Funds',path:'/Projects/{projectId}/Billing/Funds'},
+    {label:'Billing Vitals',path:'/Projects/{projectId}/Billing/Vitals'},
+  ],
+  contact:[
+    {label:'Addresses',path:'/Contacts/{contactId}/Addresses'},
+    {label:'Emails',path:'/Contacts/{contactId}/Emails'},
+    {label:'Phones',path:'/Contacts/{contactId}/Phones'},
+    {label:'Custom Tabs',path:'/Contacts/{contactId}/CustomTabs'},
+    {label:'Projects',path:'/Contacts/{contactId}/Projects'},
+  ],
+  section:[
+    {label:'Collection Data',path:'/Projects/{projectId}/Collections/{selector}'},
+    {label:'Form Data',path:'/Projects/{projectId}/Forms/{selector}'},
+  ]
+};
+
+var BROWSE_DATA={items:[],cols:[]};
+
+function onBrowseCategoryChange(){
+  var cat=v('browseCategory');
+  var sel=gi('browseEndpoint');
+  if(cat==='custom'){
+    sel.innerHTML='<option value="custom">Enter path below</option>';
+    gi('browseParams').style.display='';
+    gi('browseParamFields').innerHTML='<div class="fg" style="margin-bottom:0"><label class="fl">Full API Path</label><input class="fi mono" id="browseCustomPath" placeholder="/Projects/123/Team"></div>';
+    return;
+  }
+  var eps=BROWSE_ENDPOINTS[cat]||[];
+  sel.innerHTML=eps.map(function(e){return '<option value="'+e.path+'">'+esc(e.label)+' — '+e.path+'</option>'}).join('');
+  onBrowseEndpointChange();
+}
+
+function onBrowseEndpointChange(){
+  var cat=v('browseCategory');
+  var ep=v('browseEndpoint');
+  if(!ep||cat==='org'){gi('browseParams').style.display='none';return}
+  gi('browseParams').style.display='';
+  var html='';
+
+  if(ep.includes('{projectId}')){
+    var projOpts=(C.projects||[]).slice(0,200).map(function(p){
+      var id=p.projectId_native||p.projectId;
+      return '<option value="'+id+'">'+esc(p.projectName||'Project')+' ('+id+')</option>';
+    }).join('');
+    html+='<div class="fg" style="margin-bottom:8px"><label class="fl">Project ID <span class="tg tg-ok" style="font-size:9px">AUTO-CACHED: '+(C.projects?C.projects.length:0)+'</span></label><select class="fs" id="browseProjectId">'+projOpts+'</select></div>';
+  }
+
+  if(ep.includes('{contactId}')){
+    var contOpts=(C.contacts||[]).slice(0,200).map(function(c){
+      var id=c.contactId_native||c.contactId;
+      return '<option value="'+id+'">'+esc(c.fullName||c.firstName||'Contact')+' ('+id+')</option>';
+    }).join('');
+    html+='<div class="fg" style="margin-bottom:8px"><label class="fl">Contact ID <span class="tg tg-ok" style="font-size:9px">AUTO-CACHED: '+(C.contacts?C.contacts.length:0)+'</span></label><select class="fs" id="browseContactId">'+contOpts+'</select></div>';
+  }
+
+  if(ep.includes('{selector}')){
+    var secOpts=(C.selectors||[]).map(function(s){
+      return '<option value="'+s.val+'">'+esc(s.label)+' ('+s.val+') — '+esc(s.ptName)+(s.isColl?' [Coll]':' [Form]')+'</option>';
+    }).join('');
+    html+='<div class="fg" style="margin-bottom:8px"><label class="fl">Section Selector <span class="tg tg-ok" style="font-size:9px">AUTO-CACHED: '+(C.selectors?C.selectors.length:0)+'</span></label><select class="fs" id="browseSelectorId">'+secOpts+'</select></div>';
+  }
+
+  if(!html)html='<div style="font-size:11px;color:var(--txm)">No dynamic parameters needed</div>';
+  gi('browseParamFields').innerHTML=html;
+}
+
+function resolveBrowsePath(){
+  var cat=v('browseCategory');
+  if(cat==='custom')return v('browseCustomPath');
+  var ep=v('browseEndpoint');
+  if(!ep)return null;
+  if(ep.includes('{projectId}')){var pid=gi('browseProjectId')?gi('browseProjectId').value:'';ep=ep.replace('{projectId}',pid)}
+  if(ep.includes('{contactId}')){var cid=gi('browseContactId')?gi('browseContactId').value:'';ep=ep.replace('{contactId}',cid)}
+  if(ep.includes('{selector}')){var sel=gi('browseSelectorId')?gi('browseSelectorId').value:'';ep=ep.replace('{selector}',sel)}
+  return ep;
+}
+
+async function browseFetch(){
+  if(!S.fvConnected){toast('Connect to Filevine first','err');return}
+  var cat=v('browseCategory');
+  var iterMode=v('browseIterate');
+  var maxRes=parseInt(v('browseMax'))||0;
+  var btn=gi('browseFetchBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Fetching…';
+
+  var allItems=[];
+  try{
+    if(iterMode==='all'&&(cat==='project'||cat==='section')){
+      // Iterate all cached project IDs
+      var projs=C.projects||[];if(maxRes>0)projs=projs.slice(0,maxRes);
+      var epTemplate=v('browseEndpoint');
+      for(var i=0;i<projs.length;i++){
+        var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        btn.innerHTML='<span class="spin"></span> Project '+(i+1)+'/'+projs.length;
+        var path=epTemplate.replace('{projectId}',pid);
+        if(path.includes('{selector}')){var sel=gi('browseSelectorId')?gi('browseSelectorId').value:'';path=path.replace('{selector}',sel)}
+        try{
+          var items=await fvAll(path,0,100);
+          items.forEach(function(item){var f=flat(item);f._projectId=pid;f._projectName=projs[i].projectName||'';allItems.push(f)});
+        }catch(e){}
+      }
+    }else if(iterMode==='all'&&cat==='contact'){
+      var conts=C.contacts||[];if(maxRes>0)conts=conts.slice(0,maxRes);
+      var epTemplate=v('browseEndpoint');
+      for(var i=0;i<conts.length;i++){
+        var cid=conts[i].contactId_native||conts[i].contactId;if(!cid)continue;
+        btn.innerHTML='<span class="spin"></span> Contact '+(i+1)+'/'+conts.length;
+        var path=epTemplate.replace('{contactId}',cid);
+        try{
+          var items=await fvAll(path,0,50);
+          items.forEach(function(item){var f=flat(item);f._contactId=cid;f._contactName=conts[i].fullName||conts[i].firstName||'';allItems.push(f)});
+        }catch(e){}
+      }
+    }else{
+      // Single fetch
+      var path=resolveBrowsePath();
+      if(!path){toast('Select an endpoint','err');btn.disabled=false;btn.innerHTML='Fetch';return}
+      var ps=maxRes>0?maxRes:500;
+      var items=await fvAll(path,ps,100);
+      allItems=items.map(flat);
+    }
+  }catch(e){toast('Error: '+e.message,'err')}
+
+  if(!allItems.length){toast('No data returned','err');btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Fetch';return}
+
+  BROWSE_DATA.items=allItems;
+  var keys=Object.keys(allItems[0]);
+  BROWSE_DATA.cols=keys.map(function(k){var s=allItems[0][k];var t='STRING';if(typeof s==='number')t=Number.isInteger(s)?'LONG':'DOUBLE';if(typeof s==='string'&&/^\d{4}-\d{2}-\d{2}/.test(s))t=s.includes('T')?'DATETIME':'DATE';return{name:k,type:t}});
+
+  gi('browseResults').style.display='';
+  gi('browseResultCount').textContent=allItems.length+' rows · '+keys.length+' cols';
+  gi('browsePushBtn').style.display='';
+
+  var pvK=keys.slice(0,8);
+  var h='<table class="dt"><thead><tr>'+pvK.map(function(k){return '<th>'+k+'</th>'}).join('')+'</tr></thead><tbody>';
+  allItems.slice(0,20).forEach(function(row){h+='<tr>'+pvK.map(function(k){var vl=row[k];if(typeof vl==='object')vl=JSON.stringify(vl).substring(0,60);return '<td>'+esc(String(vl==null?'':vl))+'</td>'}).join('')+'</tr>'});
+  if(allItems.length>20)h+='<tr><td colspan="'+pvK.length+'" style="text-align:center;color:var(--txm)">… and '+(allItems.length-20)+' more rows</td></tr>';
+  gi('browseResultTable').innerHTML=h+'</tbody></table>';
+
+  btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Fetch';
+}
+
+async function browsePushToDomo(){
+  if(!S.domoConnected){toast('Connect to Domo first','err');return}
+  if(!BROWSE_DATA.items.length){toast('No data to push','err');return}
+  var dsName=prompt('Dataset name:','Filevine Browse — '+new Date().toISOString().split('T')[0]);
+  if(!dsName)return;
+  var btn=gi('browsePushBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Creating…';
+  var res=await domoFetch('POST','/v1/datasets',{name:dsName,description:'Filevine Browse export',schema:{columns:BROWSE_DATA.cols}});
+  if(res&&res.id){
+    btn.innerHTML='<span class="spin"></span> Uploading '+BROWSE_DATA.items.length+' rows…';
+    var ok=await domoFetch('PUT','/v1/datasets/'+res.id+'/data',jsonToCsv(BROWSE_DATA.items),'text/csv');
+    if(ok){toast('Pushed to Domo! ID: '+res.id,'ok')}else toast('Upload failed','err')
+  }else toast('Create failed','err');
+  btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg> Push to Domo';
+}
+
+function refreshBrowseCache(){if(!S.fvConnected){toast('Connect to Filevine first','err');return}C={};warmCache()}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+upDomo();upFv();renderRecipes();
+(async function(){try{var r=await fetch('/proxy/domo/token?client_id=test&client_secret=test');var t=await r.text();if(t.trim().startsWith('<!'))throw 0}catch(e){gi('dsNotice').innerHTML='<div class="banner warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span><strong>Proxy required.</strong> Run <code style="background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:4px">cd filevine-connector-ddx && npm start</code> then open <a href="http://localhost:3000" style="color:inherit;font-weight:600">localhost:3000</a></span></div>'}})();
+</script>
+</body>
+</html>

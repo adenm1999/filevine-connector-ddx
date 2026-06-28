@@ -1,0 +1,18 @@
+{
+  "name": "filevine-connector-ddx",
+  "version": "1.0.0",
+  "description": "- **Domo CLI** installed: `npm install -g @domoinc/ryuu` - Admin or developer access to `filevine-springslawgroup.domo.com` - Filevine API Key, Secret, and Org ID",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.21.2",
+    "node-fetch": "^2.7.0"
+  }
+}
