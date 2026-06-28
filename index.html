@@ -460,18 +460,20 @@ async function iterFilteredProjects(subpath,max,ps,prog){
 // ═══════════════════════════════════════
 var RECIPES=[
   // ─── ⭐ PRIORITY DATASETS (auto-iterates, no manual Project ID) ───
-  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals',ds:'Every project with its vital metrics merged in one row. Auto-fetches all projects then pulls vitals for each. Rate-limited to 5 req/min per Filevine limits.',eps:['/Projects','/Projects/{id}/Vitals'],
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals',ds:'Every project with its vital metrics pivoted into columns. Throttled to 5 req/min per Filevine limits.',eps:['/Projects','/Projects/{id}/Vitals'],
     run:async function(o,p){
       var projs=await getProjects(o.mp,o.ps);
       for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
         if(p)p('Vitals '+(i+1)+'/'+projs.length+' (throttled 5/min)',i/projs.length);
         try{var r=await fvGet('/Projects/'+pid+'/Vitals');
-          if(r){var vf=flat(r);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+          if(r){var items=r.items||r.Items||(Array.isArray(r)?r:[r]);
+            items.forEach(function(v){var fn=v.fieldName||v.FieldName||v.name||'';if(fn){projs[i]['vital_'+fn]=v.value!==undefined?v.value:(v.Value!==undefined?v.Value:'');projs[i]['vital_'+fn+'_label']=v.friendlyName||v.FriendlyName||fn}})
+          }
         }catch(e){}
         if(i<projs.length-1)await new Promise(function(ok){setTimeout(ok,12500)});
       }
       return projs}},
-  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Phase + Team',ds:'The master case list — every project enriched with vitals, current phase, and team members. Vitals throttled to 5 req/min.',eps:['/Projects','/Projects/{id}/Vitals','/Projects/{id}/Phases','/Projects/{id}/Team'],
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Phase + Team',ds:'Master case list — vitals pivoted into columns, plus current phase and team. Throttled.',eps:['/Projects','/Projects/{id}/Vitals','/Projects/{id}/Phases','/Projects/{id}/Team'],
     run:async function(o,p){
       var projs=await getProjects(o.mp,o.ps);
       for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
@@ -481,7 +483,9 @@ var RECIPES=[
           projs[i].teamCount=tm.length;projs[i].teamMembers=tm.map(function(t){return t.fullName||t.name||''}).join(', ');
         }catch(e){}
         try{var r=await fvGet('/Projects/'+pid+'/Vitals');
-          if(r){var vf=flat(r);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+          if(r){var items=r.items||r.Items||(Array.isArray(r)?r:[r]);
+            items.forEach(function(v){var fn=v.fieldName||v.FieldName||v.name||'';if(fn){projs[i]['vital_'+fn]=v.value!==undefined?v.value:(v.Value!==undefined?v.Value:'');projs[i]['vital_'+fn+'_label']=v.friendlyName||v.FriendlyName||fn}})
+          }
         }catch(e){}
         if(i<projs.length-1)await new Promise(function(ok){setTimeout(ok,12500)});
       }
