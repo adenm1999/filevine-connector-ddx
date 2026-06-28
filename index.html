@@ -459,6 +459,28 @@ async function iterFilteredProjects(subpath,max,ps,prog){
 //  DATASET RECIPES
 // ═══════════════════════════════════════
 var RECIPES=[
+  // ─── ⭐ PRIORITY DATASETS (auto-iterates, no manual Project ID) ───
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals',ds:'Every project with its vital metrics merged in one row. Auto-fetches all project IDs then pulls vitals for each — no manual Project ID needed.',eps:['/Projects','/Projects/{id}/Vitals'],
+    run:async function(o,p){
+      var projs=await getProjects(o.mp,o.ps);
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Vitals '+(i+1)+'/'+projs.length,i/projs.length);
+        try{var vt=await fvAll('/Projects/'+pid+'/Vitals',0,50);
+          if(vt.length){var vf=flat(vt[0]);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+        }catch(e){}}
+      return projs}},
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Phase + Team',ds:'The master case list — every project enriched with vitals, current phase, and team members. Auto-iterates all projects.',eps:['/Projects','/Projects/{id}/Vitals','/Projects/{id}/Phases','/Projects/{id}/Team'],
+    run:async function(o,p){
+      var projs=await getProjects(o.mp,o.ps);
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Enriching '+(i+1)+'/'+projs.length,i/projs.length);
+        try{var[vt,ph,tm]=await Promise.all([fvAll('/Projects/'+pid+'/Vitals',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Phases',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Team',0,50).catch(function(){return[]})]);
+          if(vt.length){var vf=flat(vt[0]);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+          projs[i].currentPhase=ph.length?(ph[ph.length-1].name||ph[ph.length-1].phaseName||''):'';projs[i].phaseCount=ph.length;
+          projs[i].teamCount=tm.length;projs[i].teamMembers=tm.map(function(t){return t.fullName||t.name||''}).join(', ');
+        }catch(e){}}
+      return projs}},
+
   // ─── ORG-WIDE (no iteration) ───
   {cat:'Org-Wide Datasets',ico:'green',nm:'All Projects',ds:'Full project/matter list with status, phase, dates. No iteration needed.',eps:['/Projects'],
     run:async function(o,p){return(await fvAll('/Projects',0,o.ps,p)).map(flat)}},
