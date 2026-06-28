@@ -460,25 +460,31 @@ async function iterFilteredProjects(subpath,max,ps,prog){
 // ═══════════════════════════════════════
 var RECIPES=[
   // ─── ⭐ PRIORITY DATASETS (auto-iterates, no manual Project ID) ───
-  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals',ds:'Every project with its vital metrics merged in one row. Auto-fetches all project IDs then pulls vitals for each — no manual Project ID needed.',eps:['/Projects','/Projects/{id}/Vitals'],
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals',ds:'Every project with its vital metrics merged in one row. Auto-fetches all projects then pulls vitals for each. Rate-limited to 5 req/min per Filevine limits.',eps:['/Projects','/Projects/{id}/Vitals'],
     run:async function(o,p){
       var projs=await getProjects(o.mp,o.ps);
       for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
-        if(p)p('Vitals '+(i+1)+'/'+projs.length,i/projs.length);
-        try{var vt=await fvAll('/Projects/'+pid+'/Vitals',0,50);
-          if(vt.length){var vf=flat(vt[0]);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
-        }catch(e){}}
+        if(p)p('Vitals '+(i+1)+'/'+projs.length+' (throttled 5/min)',i/projs.length);
+        try{var r=await fvGet('/Projects/'+pid+'/Vitals');
+          if(r){var vf=flat(r);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+        }catch(e){}
+        if(i<projs.length-1)await new Promise(function(ok){setTimeout(ok,12500)});
+      }
       return projs}},
-  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Phase + Team',ds:'The master case list — every project enriched with vitals, current phase, and team members. Auto-iterates all projects.',eps:['/Projects','/Projects/{id}/Vitals','/Projects/{id}/Phases','/Projects/{id}/Team'],
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Phase + Team',ds:'The master case list — every project enriched with vitals, current phase, and team members. Vitals throttled to 5 req/min.',eps:['/Projects','/Projects/{id}/Vitals','/Projects/{id}/Phases','/Projects/{id}/Team'],
     run:async function(o,p){
       var projs=await getProjects(o.mp,o.ps);
       for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
-        if(p)p('Enriching '+(i+1)+'/'+projs.length,i/projs.length);
-        try{var[vt,ph,tm]=await Promise.all([fvAll('/Projects/'+pid+'/Vitals',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Phases',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Team',0,50).catch(function(){return[]})]);
-          if(vt.length){var vf=flat(vt[0]);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+        if(p)p('Enriching '+(i+1)+'/'+projs.length+' (vitals throttled)',i/projs.length);
+        try{var[ph,tm]=await Promise.all([fvAll('/Projects/'+pid+'/Phases',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Team',0,50).catch(function(){return[]})]);
           projs[i].currentPhase=ph.length?(ph[ph.length-1].name||ph[ph.length-1].phaseName||''):'';projs[i].phaseCount=ph.length;
           projs[i].teamCount=tm.length;projs[i].teamMembers=tm.map(function(t){return t.fullName||t.name||''}).join(', ');
-        }catch(e){}}
+        }catch(e){}
+        try{var r=await fvGet('/Projects/'+pid+'/Vitals');
+          if(r){var vf=flat(r);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
+        }catch(e){}
+        if(i<projs.length-1)await new Promise(function(ok){setTimeout(ok,12500)});
+      }
       return projs}},
 
   // ─── ORG-WIDE (no iteration) ───
