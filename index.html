@@ -294,6 +294,7 @@
 
         <div class="bg">
           <button class="btn bp" id="browseFetchBtn" onclick="browseFetch()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Fetch</button>
+          <div id="browsePushName" style="display:none;flex:1"><input class="fi" id="browsePushNameInput" placeholder="Dataset name for Domo…" style="font-size:12px"></div>
           <button class="btn bs" id="browsePushBtn" onclick="browsePushToDomo()" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg> Push to Domo</button>
         </div>
       </div>
@@ -1199,6 +1200,9 @@ async function browseFetch(){
   gi('browseResults').style.display='';
   gi('browseResultCount').textContent=allItems.length+' rows · '+keys.length+' cols';
   gi('browsePushBtn').style.display='';
+  // Show dataset name input for push
+  gi('browsePushName').style.display='';
+  gi('browsePushNameInput').value='Filevine Browse — '+v('browseEndpoint').split('/').pop()+' — '+new Date().toISOString().split('T')[0];
 
   var pvK=keys.slice(0,8);
   var h='<table class="dt"><thead><tr>'+pvK.map(function(k){return '<th>'+k+'</th>'}).join('')+'</tr></thead><tbody>';
@@ -1212,15 +1216,24 @@ async function browseFetch(){
 async function browsePushToDomo(){
   if(!S.domoConnected){toast('Connect to Domo first','err');return}
   if(!BROWSE_DATA.items.length){toast('No data to push','err');return}
-  var dsName=prompt('Dataset name:','Filevine Browse — '+new Date().toISOString().split('T')[0]);
-  if(!dsName)return;
+  var dsName=v('browsePushNameInput');
+  if(!dsName){toast('Enter a dataset name','err');return}
   var btn=gi('browsePushBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Creating…';
-  var res=await domoFetch('POST','/v1/datasets',{name:dsName,description:'Filevine Browse export',schema:{columns:BROWSE_DATA.cols}});
-  if(res&&res.id){
+  console.log('[Push] Creating dataset:', dsName, 'with', BROWSE_DATA.cols.length, 'cols');
+  try{
+    var r=await fetch('/proxy/domo/api/v1/datasets',{method:'POST',headers:{Authorization:'Bearer '+S.domoToken,'Content-Type':'application/json'},body:JSON.stringify({name:dsName,description:'Filevine Browse export',schema:{columns:BROWSE_DATA.cols}})});
+    var res=await r.json();
+    console.log('[Push] Create response:', r.status, res);
+    if(!r.ok||!res.id){toast('Create failed: '+(res.message||res.error||JSON.stringify(res)),'err');btn.disabled=false;btn.innerHTML='Push to Domo';return}
+    toast('Dataset created: '+res.id,'ok');
     btn.innerHTML='<span class="spin"></span> Uploading '+BROWSE_DATA.items.length+' rows…';
-    var ok=await domoFetch('PUT','/v1/datasets/'+res.id+'/data',jsonToCsv(BROWSE_DATA.items),'text/csv');
-    if(ok){toast('Pushed to Domo! ID: '+res.id,'ok')}else toast('Upload failed','err')
-  }else toast('Create failed','err');
+    var csv=jsonToCsv(BROWSE_DATA.items);
+    console.log('[Push] Uploading CSV:', csv.length, 'bytes to', res.id);
+    var r2=await fetch('/proxy/domo/api/v1/datasets/'+res.id+'/data',{method:'PUT',headers:{Authorization:'Bearer '+S.domoToken,'Content-Type':'text/csv'},body:csv});
+    console.log('[Push] Upload response:', r2.status);
+    if(r2.ok||r2.status===204){toast('Pushed '+BROWSE_DATA.items.length+' rows to Domo! ID: '+res.id,'ok')}
+    else{var err=await r2.text();toast('Upload failed: '+r2.status+' '+err.substring(0,100),'err');console.log('[Push] Upload error:', err)}
+  }catch(e){toast('Push error: '+e.message,'err');console.error('[Push]',e)}
   btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg> Push to Domo';
 }
 
