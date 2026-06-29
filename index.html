@@ -374,7 +374,9 @@ function upDomo(){gi('dDot').className='dot '+(S.domoConnected?'on':'off');gi('d
 async function connectFv(){var pat=v('cfgFvPat'),cid=v('cfgFvCid'),csec=v('cfgFvCsec');if(!pat||!cid||!csec){toast('Fill in PAT, Client ID, and Secret','err');return}var btn=gi('fvConnBtn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Auth…';try{var r=await fetch('/proxy/fv/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pat:pat,client_id:cid,client_secret:csec})});var t=await r.text();if(t.trim().startsWith('<!'))throw new Error('PROXY');var d=JSON.parse(t);if(!r.ok)throw new Error(d.error||'Failed');S.fvToken=d.access_token;var jwt=JSON.parse(atob(S.fvToken.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));S.fvUserId=v('cfgFvUserId')||jwt.sub;S.fvOrgId=v('cfgFvOrgId')||jwt.tenant_id;if(!S.fvUserId||!S.fvOrgId)throw new Error('Set Org ID and User ID');S.fvConnected=true;upFv();toast('Connected to Filevine!','ok');warmCache()}catch(e){toast(e.message==='PROXY'?'Proxy not running!':'FV auth: '+e.message,'err')}btn.disabled=false;btn.innerHTML='Authenticate &amp; Connect'}
 function disconnFv(){S.fvConnected=false;S.fvToken=null;C={};upFv();toast('Cleared','info')}
 function upFv(){gi('fDot').className='dot '+(S.fvConnected?'on':'off');gi('fTxt').textContent=S.fvConnected?'Connected':'Not configured'}
-async function fvGet(path){if(!S.fvToken)return null;try{var r=await fetch('/proxy/fv/gateway'+path,{headers:{Authorization:'Bearer '+S.fvToken,'x-fv-orgid':String(S.fvOrgId),'x-fv-userid':String(S.fvUserId),'Content-Type':'application/json'}});if(!r.ok)throw 0;return await r.json()}catch(e){return null}}
+async function fvGet(path){if(!S.fvToken)return null;for(var attempt=0;attempt<3;attempt++){try{var r=await fetch('/proxy/fv/gateway'+path,{headers:{Authorization:'Bearer '+S.fvToken,'x-fv-orgid':String(S.fvOrgId),'x-fv-userid':String(S.fvUserId),'Content-Type':'application/json'}});if(r.status===429){console.log('Rate limited on '+path+', waiting 15s (attempt '+(attempt+1)+')');await new Promise(function(ok){setTimeout(ok,15000)});continue}if(!r.ok){console.log('fvGet '+path+' → HTTP '+r.status);return null}return await r.json()}catch(e){return null}}return null}
+async function fvGetVitals(pid){var r=await fvGet('/Projects/'+pid+'/Vitals');var out={};if(r){var items=r.items||r.Items||(Array.isArray(r)?r:[r]);items.forEach(function(v){var fn=v.fieldName||v.FieldName||v.name||'';if(fn){out['vital_'+fn]=v.value!==undefined?v.value:(v.Value!==undefined?v.Value:'');out['vital_'+fn+'_label']=v.friendlyName||v.FriendlyName||fn}})}return out}
+async function fvGetBillingVitals(pid){var r=await fvGet('/Projects/'+pid+'/Billing/Vitals');var out={};if(r){var vf=flat(r);Object.keys(vf).forEach(function(k){out['billvital_'+k]=vf[k]})}return out}
 async function fvAll(path,max,ps,prog){if(!S.fvToken)return[];var all=[],off=0,lim=ps||500,pg=0;max=parseInt(max)||0;while(true){var fl=max>0?Math.min(lim,max-all.length):lim;if(fl<=0)break;var sep=path.includes('?')?'&':'?';var r=await fvGet(path+sep+'offset='+off+'&limit='+fl);var items=r&&(r.items||r.Items||r.data||(Array.isArray(r)?r:null));if(!items||!items.length){if(r&&!Array.isArray(r)&&typeof r==='object'&&!r.items)all.push(r);break}all=all.concat(items);pg++;if(prog)prog(all.length,pg);if(items.length<fl)break;if(max>0&&all.length>=max)break;off+=items.length}return max>0?all.slice(0,max):all}
 
 // ═══════════════════════════════════════
@@ -459,26 +461,30 @@ async function iterFilteredProjects(subpath,max,ps,prog){
 //  DATASET RECIPES
 // ═══════════════════════════════════════
 var RECIPES=[
-  // ─── ⭐ PRIORITY DATASETS (auto-iterates, no manual Project ID) ───
-  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals',ds:'Every project with its vital metrics merged in one row. Auto-fetches all project IDs then pulls vitals for each — no manual Project ID needed.',eps:['/Projects','/Projects/{id}/Vitals'],
+  // ─── ⭐ PRIORITY DATASETS ───
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals',ds:'Every project with vital metrics pivoted into columns (e.g. vital_Pod, vital_TypeOfCase). Throttled 5 req/min. Use Max Projects to batch.',eps:['/Projects','/Projects/{id}/Vitals'],
     run:async function(o,p){
-      var projs=await getProjects(o.mp,o.ps);
+      var projs=await getProjects(o.mp,o.ps);var filled=0;
       for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
-        if(p)p('Vitals '+(i+1)+'/'+projs.length,i/projs.length);
-        try{var vt=await fvAll('/Projects/'+pid+'/Vitals',0,50);
-          if(vt.length){var vf=flat(vt[0]);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
-        }catch(e){}}
+        if(p)p('Vitals '+(i+1)+'/'+projs.length+' ('+filled+' with data, 5/min throttle)',i/projs.length);
+        var vd=await fvGetVitals(pid);
+        if(vd&&Object.keys(vd).length){Object.assign(projs[i],vd);filled++}
+        await new Promise(function(ok){setTimeout(ok,12500)});
+      }
+      if(p)p('Done — '+filled+'/'+projs.length+' projects had vitals',1);
       return projs}},
-  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Phase + Team',ds:'The master case list — every project enriched with vitals, current phase, and team members. Auto-iterates all projects.',eps:['/Projects','/Projects/{id}/Vitals','/Projects/{id}/Phases','/Projects/{id}/Team'],
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Team',ds:'Master case list — vitals pivoted into columns, plus team members. Phase already included from project data (phaseName field).',eps:['/Projects','/Projects/{id}/Vitals','/Projects/{id}/Team'],
     run:async function(o,p){
-      var projs=await getProjects(o.mp,o.ps);
+      var projs=await getProjects(o.mp,o.ps);var filled=0;
       for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
-        if(p)p('Enriching '+(i+1)+'/'+projs.length,i/projs.length);
-        try{var[vt,ph,tm]=await Promise.all([fvAll('/Projects/'+pid+'/Vitals',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Phases',0,50).catch(function(){return[]}),fvAll('/Projects/'+pid+'/Team',0,50).catch(function(){return[]})]);
-          if(vt.length){var vf=flat(vt[0]);Object.keys(vf).forEach(function(k){projs[i]['vital_'+k]=vf[k]})}
-          projs[i].currentPhase=ph.length?(ph[ph.length-1].name||ph[ph.length-1].phaseName||''):'';projs[i].phaseCount=ph.length;
-          projs[i].teamCount=tm.length;projs[i].teamMembers=tm.map(function(t){return t.fullName||t.name||''}).join(', ');
-        }catch(e){}}
+        if(p)p('Enriching '+(i+1)+'/'+projs.length+' ('+filled+' with vitals)',i/projs.length);
+        try{var tm=await fvAll('/Projects/'+pid+'/Team',0,50);
+          projs[i].teamCount=tm.length;projs[i].teamMembers=tm.map(function(t){return(t.fullName||t.firstName+' '+t.lastName||t.name||'').trim()}).join(', ');
+        }catch(e){}
+        var vd=await fvGetVitals(pid);
+        if(vd&&Object.keys(vd).length){Object.assign(projs[i],vd);filled++}
+        await new Promise(function(ok){setTimeout(ok,12500)});
+      }
       return projs}},
 
   // ─── ORG-WIDE (no iteration) ───
