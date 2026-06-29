@@ -37,7 +37,7 @@ app.post('/proxy/fv/token', async (req, res) => {
   params.append('token', pat);
   params.append('client_id', client_id);
   params.append('client_secret', client_secret);
-  params.append('scope', 'fv.api.gateway.access tenant filevine.v2.api.* openid email fv.auth.tenant.read fv.vitals.api.* fv.payments.api.all filevine.v2.webhooks');
+  params.append('scope', 'fv.api.gateway.access tenant filevine.v2.api.* openid email fv.auth.tenant.read');
 
   try {
     const resp = await fetch('https://identity.filevine.com/connect/token', {
