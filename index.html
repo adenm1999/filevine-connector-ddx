@@ -442,7 +442,7 @@ async function getProjectIdsFromDomo(max){
     var hdrs=lines[0].split(',').map(function(h){return h.replace(/"/g,'').trim()});
     // Find the projectId column
     var pidCol=-1;
-    for(var h=0;h<hdrs.length;h++){var hl=hdrs[h].toLowerCase();if(hl==='projectid_native'||hl==='projectid'||hl==='project_id'||hl==='projectid native'){pidCol=h;break}}
+    for(var h=0;h<hdrs.length;h++){var hl=hdrs[h].toLowerCase();if(hl==='projectid_native'||hl==='projectid'||hl==='project_id'||hl==='projectid native'||hl==='project id'){pidCol=h;break}}
     if(pidCol<0){// Try partial match
       for(var h=0;h<hdrs.length;h++){if(hdrs[h].toLowerCase().indexOf('projectid')>=0){pidCol=h;break}}}
     if(pidCol<0){toast('No projectId column found in Domo dataset','err');console.log('Available columns:',hdrs);return[]}
