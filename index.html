@@ -1056,7 +1056,36 @@ function onBrowseCategoryChange(){
   }
   var eps=BROWSE_ENDPOINTS[cat]||[];
   sel.innerHTML=eps.map(function(e){return '<option value="'+e.path+'">'+esc(e.label)+' — '+e.path+'</option>'}).join('');
+  // Auto-load Domo project IDs when selecting Per-Project
+  if(cat==='project'||cat==='section'){loadDomoProjectIdsForBrowse()}
   onBrowseEndpointChange();
+}
+
+// Load project IDs from Domo dataset into C.domoProjectIds for Browse dropdown
+async function loadDomoProjectIdsForBrowse(){
+  if(C.domoProjectIds&&C.domoProjectIds.length)return; // already loaded
+  if(!S.domoToken){toast('Connect to Domo first to load Project IDs','err');return}
+  toast('Loading Project IDs from Domo…','info');
+  try{
+    var r=await fetch('/proxy/domo/api/v1/datasets/'+DOMO_PROJECTS_DS+'/data?includeHeader=true',{headers:{Authorization:'Bearer '+S.domoToken}});
+    if(!r.ok){toast('Domo dataset fetch failed ('+r.status+')','err');return}
+    var csv=await r.text();var lines=csv.split('\n');if(lines.length<2)return;
+    var hdrs=lines[0].split(',').map(function(h){return h.replace(/"/g,'').trim()});
+    var pidCol=-1;
+    for(var h=0;h<hdrs.length;h++){var hl=hdrs[h].toLowerCase();if(hl==='projectid_native'||hl==='projectid'||hl==='project_id'||hl==='projectid native'||hl==='project id'){pidCol=h;break}}
+    if(pidCol<0){for(var h=0;h<hdrs.length;h++){if(hdrs[h].toLowerCase().indexOf('projectid')>=0||hdrs[h].toLowerCase().indexOf('project')>=0){pidCol=h;break}}}
+    if(pidCol<0){toast('No project ID column found','err');console.log('Columns:',hdrs);return}
+    C.domoProjectIds=[];var seen=new Set();
+    for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim())continue;
+      var vals=lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)||lines[i].split(',');
+      var pid=(vals[pidCol]||'').replace(/"/g,'').trim();
+      if(pid&&!seen.has(pid)){seen.add(pid);C.domoProjectIds.push(pid)}
+    }
+    toast('Loaded '+C.domoProjectIds.length+' Project IDs from Domo','ok');
+    // Refresh the browse param dropdown
+    onBrowseEndpointChange();
+  }catch(e){toast('Error loading Domo IDs: '+e.message,'err')}
 }
 
 function onBrowseEndpointChange(){
@@ -1067,11 +1096,13 @@ function onBrowseEndpointChange(){
   var html='';
 
   if(ep.includes('{projectId}')){
-    var projOpts=(C.projects||[]).slice(0,200).map(function(p){
-      var id=p.projectId_native||p.projectId;
-      return '<option value="'+id+'">'+esc(p.projectName||'Project')+' ('+id+')</option>';
+    var projList=C.domoProjectIds||[];
+    var projSource='DOMO';
+    if(!projList.length&&C.projects){projList=(C.projects||[]).map(function(p){return String(p.projectId_native||p.projectId)});projSource='FV CACHE'}
+    var projOpts=projList.slice(0,500).map(function(id){
+      return '<option value="'+id+'">'+id+'</option>';
     }).join('');
-    html+='<div class="fg" style="margin-bottom:8px"><label class="fl">Project ID <span class="tg tg-ok" style="font-size:9px">AUTO-CACHED: '+(C.projects?C.projects.length:0)+'</span></label><select class="fs" id="browseProjectId">'+projOpts+'</select></div>';
+    html+='<div class="fg" style="margin-bottom:8px"><label class="fl">Project ID <span class="tg tg-ok" style="font-size:9px">'+projSource+': '+projList.length+' IDs</span></label><select class="fs" id="browseProjectId"><option value="">— Select Project —</option>'+projOpts+'</select></div>';
   }
 
   if(ep.includes('{contactId}')){
@@ -1114,17 +1145,27 @@ async function browseFetch(){
   var allItems=[];
   try{
     if(iterMode==='all'&&(cat==='project'||cat==='section')){
-      // Iterate all cached project IDs
-      var projs=C.projects||[];if(maxRes>0)projs=projs.slice(0,maxRes);
+      // Iterate all project IDs — prefer Domo source, fallback to FV cache
+      var projIds=C.domoProjectIds||[];
+      if(!projIds.length&&C.projects){projIds=(C.projects||[]).map(function(p){return String(p.projectId_native||p.projectId)})}
+      if(maxRes>0)projIds=projIds.slice(0,maxRes);
       var epTemplate=v('browseEndpoint');
-      for(var i=0;i<projs.length;i++){
-        var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
-        btn.innerHTML='<span class="spin"></span> Project '+(i+1)+'/'+projs.length;
+      var isVitals=epTemplate.includes('/Vitals');
+      for(var i=0;i<projIds.length;i++){
+        var pid=projIds[i];if(!pid)continue;
+        btn.innerHTML='<span class="spin"></span> Project '+(i+1)+'/'+projIds.length;
         var path=epTemplate.replace('{projectId}',pid);
         if(path.includes('{selector}')){var sel=gi('browseSelectorId')?gi('browseSelectorId').value:'';path=path.replace('{selector}',sel)}
         try{
-          var items=await fvAll(path,0,100);
-          items.forEach(function(item){var f=flat(item);f._projectId=pid;f._projectName=projs[i].projectName||'';allItems.push(f)});
+          if(isVitals){
+            // Vitals returns array, not paginated — use fvGet + pivot
+            var vd=await fvGetVitals(pid);
+            if(vd&&Object.keys(vd).length){vd._projectId=pid;allItems.push(vd)}
+            await new Promise(function(ok){setTimeout(ok,12500)});
+          }else{
+            var items=await fvAll(path,0,100);
+            items.forEach(function(item){var f=flat(item);f._projectId=pid;allItems.push(f)});
+          }
         }catch(e){}
       }
     }else if(iterMode==='all'&&cat==='contact'){
