@@ -431,6 +431,35 @@ function onPtPick(){
 //  HELPERS: iterate across all projects
 // ═══════════════════════════════════════
 async function getProjects(max,ps){if(!C.projects){C.projects=(await fvAll('/Projects',0,ps||500)).map(flat)}return max>0?C.projects.slice(0,max):C.projects}
+// Pull project IDs from an existing Domo dataset (skips Filevine /Projects call entirely)
+var DOMO_PROJECTS_DS='f761bb7e-86ea-4b25-9bd1-508eaf36fdbb';
+async function getProjectIdsFromDomo(max){
+  if(!S.domoToken){toast('Connect to Domo first','err');return[]}
+  try{
+    var r=await fetch('/proxy/domo/api/v1/datasets/'+DOMO_PROJECTS_DS+'/data?includeHeader=true',{headers:{Authorization:'Bearer '+S.domoToken}});
+    if(!r.ok){toast('Domo dataset fetch failed ('+r.status+')','err');return[]}
+    var csv=await r.text();var lines=csv.split('\n');if(lines.length<2)return[];
+    var hdrs=lines[0].split(',').map(function(h){return h.replace(/"/g,'').trim()});
+    // Find the projectId column
+    var pidCol=-1;
+    for(var h=0;h<hdrs.length;h++){var hl=hdrs[h].toLowerCase();if(hl==='projectid_native'||hl==='projectid'||hl==='project_id'||hl==='projectid native'){pidCol=h;break}}
+    if(pidCol<0){// Try partial match
+      for(var h=0;h<hdrs.length;h++){if(hdrs[h].toLowerCase().indexOf('projectid')>=0){pidCol=h;break}}}
+    if(pidCol<0){toast('No projectId column found in Domo dataset','err');console.log('Available columns:',hdrs);return[]}
+    console.log('Using column "'+hdrs[pidCol]+'" (index '+pidCol+') for project IDs');
+    var ids=[],seen=new Set();
+    for(var i=1;i<lines.length;i++){
+      if(!lines[i].trim())continue;
+      // Simple CSV parse (handles quoted fields)
+      var vals=lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)||lines[i].split(',');
+      var pid=(vals[pidCol]||'').replace(/"/g,'').trim();
+      if(pid&&!seen.has(pid)){seen.add(pid);ids.push(pid)}
+    }
+    toast('Found '+ids.length+' unique project IDs from Domo','ok');
+    if(max>0)ids=ids.slice(0,max);
+    return ids;
+  }catch(e){toast('Error reading Domo dataset: '+e.message,'err');return[]}
+}
 async function iterProjects(subpath,max,ps,prog){
   var projs=await getProjects(max,ps);var all=[];
   for(var i=0;i<projs.length;i++){
@@ -461,30 +490,49 @@ async function iterFilteredProjects(subpath,max,ps,prog){
 //  DATASET RECIPES
 // ═══════════════════════════════════════
 var RECIPES=[
-  // ─── ⭐ PRIORITY DATASETS ───
-  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals',ds:'Every project with vital metrics pivoted into columns (e.g. vital_Pod, vital_TypeOfCase). Throttled 5 req/min. Use Max Projects to batch.',eps:['/Projects','/Projects/{id}/Vitals'],
+  // ─── ⭐ PRIORITY DATASETS (project IDs from Domo, vitals from Filevine) ───
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals (from Domo IDs)',ds:'Pulls project IDs from your Domo dataset, then fetches vitals per project from Filevine. No /Projects call needed. Throttled 5 req/min.',eps:['Domo Dataset → IDs','/Projects/{id}/Vitals'],
     run:async function(o,p){
-      var projs=await getProjects(o.mp,o.ps);var filled=0;
-      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
-        if(p)p('Vitals '+(i+1)+'/'+projs.length+' ('+filled+' with data, 5/min throttle)',i/projs.length);
+      if(p)p('Loading project IDs from Domo…',0);
+      var ids=await getProjectIdsFromDomo(o.mp);if(!ids.length){toast('No project IDs from Domo','err');return[]}
+      var rows=[];var filled=0;
+      for(var i=0;i<ids.length;i++){var pid=ids[i];
+        if(p)p('Vitals '+(i+1)+'/'+ids.length+' ('+filled+' with data)',i/ids.length);
+        var row={projectId_native:pid};
         var vd=await fvGetVitals(pid);
-        if(vd&&Object.keys(vd).length){Object.assign(projs[i],vd);filled++}
+        if(vd&&Object.keys(vd).length){Object.assign(row,vd);filled++}
+        rows.push(row);
         await new Promise(function(ok){setTimeout(ok,12500)});
       }
-      if(p)p('Done — '+filled+'/'+projs.length+' projects had vitals',1);
-      return projs}},
-  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Team',ds:'Master case list — vitals pivoted into columns, plus team members. Phase already included from project data (phaseName field).',eps:['/Projects','/Projects/{id}/Vitals','/Projects/{id}/Team'],
+      if(p)p('Done — '+filled+'/'+ids.length+' had vitals',1);
+      return rows}},
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Team (from Domo IDs)',ds:'Domo IDs → Filevine vitals + team per project. Full case list.',eps:['Domo Dataset → IDs','/Projects/{id}/Vitals','/Projects/{id}/Team'],
     run:async function(o,p){
-      var projs=await getProjects(o.mp,o.ps);var filled=0;
-      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
-        if(p)p('Enriching '+(i+1)+'/'+projs.length+' ('+filled+' with vitals)',i/projs.length);
+      if(p)p('Loading project IDs from Domo…',0);
+      var ids=await getProjectIdsFromDomo(o.mp);if(!ids.length)return[];
+      var rows=[];var filled=0;
+      for(var i=0;i<ids.length;i++){var pid=ids[i];
+        if(p)p('Enriching '+(i+1)+'/'+ids.length+' ('+filled+' with vitals)',i/ids.length);
+        var row={projectId_native:pid};
         try{var tm=await fvAll('/Projects/'+pid+'/Team',0,50);
-          projs[i].teamCount=tm.length;projs[i].teamMembers=tm.map(function(t){return(t.fullName||t.firstName+' '+t.lastName||t.name||'').trim()}).join(', ');
+          row.teamCount=tm.length;row.teamMembers=tm.map(function(t){return(t.fullName||t.firstName+' '+t.lastName||'').trim()}).join(', ');
         }catch(e){}
         var vd=await fvGetVitals(pid);
+        if(vd&&Object.keys(vd).length){Object.assign(row,vd);filled++}
+        rows.push(row);
+        await new Promise(function(ok){setTimeout(ok,12500)});
+      }
+      return rows}},
+  {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals (from Filevine)',ds:'Fetches projects AND vitals both from Filevine. Use if Domo dataset is not available.',eps:['/Projects','/Projects/{id}/Vitals'],
+    run:async function(o,p){
+      var projs=await getProjects(o.mp,o.ps);var filled=0;
+      for(var i=0;i<projs.length;i++){var pid=projs[i].projectId_native||projs[i].projectId;if(!pid)continue;
+        if(p)p('Vitals '+(i+1)+'/'+projs.length+' ('+filled+' with data)',i/projs.length);
+        var vd=await fvGetVitals(pid);
         if(vd&&Object.keys(vd).length){Object.assign(projs[i],vd);filled++}
         await new Promise(function(ok){setTimeout(ok,12500)});
       }
+      if(p)p('Done — '+filled+'/'+projs.length+' had vitals',1);
       return projs}},
 
   // ─── ORG-WIDE (no iteration) ───
