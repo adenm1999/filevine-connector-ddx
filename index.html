@@ -834,8 +834,13 @@ async function recipeFetch(){
 
   if(!items||!items.length){toast('No data returned','err');btn.disabled=false;btn.innerHTML='Fetch Dataset';gi('progWrap').style.display='none';return}
 
-  items=items.map(flat);PIPE.items=items;
-  var keys=Object.keys(items[0]);
+  items=items.map(flat);
+  // Normalize: union all keys across all rows so every row has every column
+  var allKeys={};items.forEach(function(row){Object.keys(row).forEach(function(k){allKeys[k]=true})});
+  var keyList=Object.keys(allKeys);
+  items=items.map(function(row){var norm={};keyList.forEach(function(k){norm[k]=row[k]!==undefined?row[k]:''});return norm});
+  PIPE.items=items;
+  var keys=keyList;
   PIPE.cols=keys.map(function(k){var s=items[0][k];var t='STRING';if(typeof s==='number')t=Number.isInteger(s)?'LONG':'DOUBLE';if(typeof s==='string'&&/^\d{4}-\d{2}-\d{2}/.test(s))t=s.includes('T')?'DATETIME':'DATE';return{name:k,type:t}});
 
   gi('xferStep1').style.display='none';gi('xferStep2').style.display='';
@@ -1194,8 +1199,11 @@ async function browseFetch(){
 
   if(!allItems.length){toast('No data returned','err');btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Fetch';return}
 
+  // Normalize: union all keys so every row has every column
+  var allKeys={};allItems.forEach(function(row){Object.keys(row).forEach(function(k){allKeys[k]=true})});
+  var keys=Object.keys(allKeys);
+  allItems=allItems.map(function(row){var norm={};keys.forEach(function(k){norm[k]=row[k]!==undefined?row[k]:''});return norm});
   BROWSE_DATA.items=allItems;
-  var keys=Object.keys(allItems[0]);
   BROWSE_DATA.cols=keys.map(function(k){var s=allItems[0][k];var t='STRING';if(typeof s==='number')t=Number.isInteger(s)?'LONG':'DOUBLE';if(typeof s==='string'&&/^\d{4}-\d{2}-\d{2}/.test(s))t=s.includes('T')?'DATETIME':'DATE';return{name:k,type:t}});
 
   gi('browseResults').style.display='';
