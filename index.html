@@ -387,15 +387,15 @@ async function warmCache(){
   try{
     toast('Warming cache…','info');
     // 1. Projects
-    if(!C.projects){C.projects=(await fvAll('/Projects',0,500)).map(flat)}
+    if(!C.projects){C.projects=(await fvAll('/Projects',0,500)).map(function(x){return flat(x)})}
     updateCacheUI();
 
     // 2. Contacts (first 500 for ID resolution)
-    if(!C.contacts){C.contacts=(await fvAll('/Contacts',500,500)).map(flat)}
+    if(!C.contacts){C.contacts=(await fvAll('/Contacts',500,500)).map(function(x){return flat(x)})}
     updateCacheUI();
 
     // 3. Project Types + Sections
-    C.projectTypes=(await fvAll('/ProjectTypes',50,50)).map(flat);
+    C.projectTypes=(await fvAll('/ProjectTypes',50,50)).map(function(x){return flat(x)});
     C.selectors=[];var seen=new Set();
     for(var k=0;k<C.projectTypes.length;k++){
       var tid=C.projectTypes[k].projectTypeId_native||C.projectTypes[k].projectTypeId;if(!tid)continue;
@@ -431,7 +431,7 @@ function onPtPick(){
 // ═══════════════════════════════════════
 //  HELPERS: iterate across all projects
 // ═══════════════════════════════════════
-async function getProjects(max,ps){if(!C.projects){C.projects=(await fvAll('/Projects',0,ps||500)).map(flat)}return max>0?C.projects.slice(0,max):C.projects}
+async function getProjects(max,ps){if(!C.projects){C.projects=(await fvAll('/Projects',0,ps||500)).map(function(x){return flat(x)})}return max>0?C.projects.slice(0,max):C.projects}
 // Pull project IDs from an existing Domo dataset (skips Filevine /Projects call entirely)
 var DOMO_PROJECTS_DS='f761bb7e-86ea-4b25-9bd1-508eaf36fdbb';
 async function getProjectIdsFromDomo(max){
@@ -556,13 +556,13 @@ var RECIPES=[
 
   // ─── ORG-WIDE (no iteration) ───
   {cat:'Org-Wide Datasets',ico:'green',nm:'All Projects',ds:'Full project/matter list with status, phase, dates. No iteration needed.',eps:['/Projects'],
-    run:async function(o,p){return(await fvAll('/Projects',0,o.ps,p)).map(flat)}},
+    run:async function(o,p){return(await fvAll('/Projects',0,o.ps,p)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'All Contacts',ds:'Every contact with name, email, phone, type.',eps:['/Contacts'],
-    run:async function(o,p){return(await fvAll('/Contacts',0,o.ps,p)).map(flat)}},
+    run:async function(o,p){return(await fvAll('/Contacts',0,o.ps,p)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'All Tasks',ds:'Every task across the org — descriptions, due dates, assignees, statuses.',eps:['/Tasks'],
-    run:async function(o,p){return(await fvAll('/Tasks',0,o.ps,p)).map(flat)}},
+    run:async function(o,p){return(await fvAll('/Tasks',0,o.ps,p)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'All Users',ds:'Every user in the org — names, roles, active status.',eps:['/Users'],
-    run:async function(o,p){return(await fvAll('/Users',0,o.ps,p)).map(flat)}},
+    run:async function(o,p){return(await fvAll('/Users',0,o.ps,p)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Project Types & Sections',ds:'Maps every project type to its sections/selectors. Essential for understanding your Filevine schema.',eps:['/ProjectTypes','/ProjectTypes/{id}/Sections'],
     run:async function(o,p){
       if(!C.projectTypes)await warmCache();var rows=[];
@@ -571,31 +571,31 @@ var RECIPES=[
         secs.forEach(function(s){rows.push({projectTypeName:pt.name||'',projectTypeId:tid,sectionName:s.name||'',selector:s.sectionSelector||s.selector||'',isCollection:s.isCollection||s.IsCollection||false,fieldCount:s.fields?s.fields.length:0})});
       }return rows}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Org Teams & Roles',ds:'Teams and role definitions.',eps:['/OrgTeams','/OrgRoles'],
-    run:async function(o,p){var t=(await fvAll('/OrgTeams',0,100)).map(flat);var r=(await fvAll('/OrgRoles',0,100)).map(function(x){var f=flat(x);f._type='Role';return f});return t.concat(r)}},
+    run:async function(o,p){var t=(await fvAll('/OrgTeams',0,100)).map(function(x){return flat(x)});var r=(await fvAll('/OrgRoles',0,100)).map(function(x){var f=flat(x);f._type='Role';return f});return t.concat(r)}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Contact Types',ds:'All configured contact type categories.',eps:['/ContactTypes'],
-    run:async function(){return(await fvAll('/ContactTypes',0,100)).map(flat)}},
+    run:async function(){return(await fvAll('/ContactTypes',0,100)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Custom Contact Metadata',ds:'Contact field definitions — custom field schema for your org.',eps:['/Contacts/Metadata'],
     run:async function(){var r=await fvGet('/Contacts/Metadata');return r?[flat(r)]:[]}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Billing Codes & Rates',ds:'Billing codes, rate schedules, timekeeper classifications.',eps:['/Billing/Codes','/Billing/RateSchedules','/Billing/TimekeeperClassifications'],
     run:async function(){var a=(await fvAll('/Billing/Codes',0,100)).map(function(x){var f=flat(x);f._type='Code';return f});var b=(await fvAll('/Billing/RateSchedules',0,100)).map(function(x){var f=flat(x);f._type='RateSchedule';return f});var c=(await fvAll('/Billing/TimekeeperClassifications',0,100)).map(function(x){var f=flat(x);f._type='TimekeeperClass';return f});return a.concat(b).concat(c)}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Leads (Lead Docket)',ds:'All leads if Lead Docket is enabled.',eps:['/Leads'],
-    run:async function(o,p){return(await fvAll('/Leads',0,o.ps,p)).map(flat)}},
+    run:async function(o,p){return(await fvAll('/Leads',0,o.ps,p)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Reports',ds:'Available Filevine reports.',eps:['/Reports'],
-    run:async function(){return(await fvAll('/Reports',0,100)).map(flat)}},
+    run:async function(){return(await fvAll('/Reports',0,100)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Deadline Chain Types',ds:'All deadline chain type definitions.',eps:['/DeadlineChainTypes'],
-    run:async function(){return(await fvAll('/DeadlineChainTypes',0,100)).map(flat)}},
+    run:async function(){return(await fvAll('/DeadlineChainTypes',0,100)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Document Series',ds:'Document series / template definitions configured in your org.',eps:['/DocumentSeries'],
-    run:async function(){return(await fvAll('/DocumentSeries',0,100)).map(flat)}},
+    run:async function(){return(await fvAll('/DocumentSeries',0,100)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Billing Items (Org-Wide)',ds:'All billing items across the entire org.',eps:['/Billing/Items'],
-    run:async function(o,p){return(await fvAll('/Billing/Items',0,o.ps,p)).map(flat)}},
+    run:async function(o,p){return(await fvAll('/Billing/Items',0,o.ps,p)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Invoices (Org-Wide)',ds:'All invoices across the org.',eps:['/Billing/Invoices'],
-    run:async function(o,p){return(await fvAll('/Billing/Invoices',0,o.ps,p)).map(flat)}},
+    run:async function(o,p){return(await fvAll('/Billing/Invoices',0,o.ps,p)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Billing Transactions (Org-Wide)',ds:'All billing transactions.',eps:['/Billing/Transactions'],
-    run:async function(o,p){return(await fvAll('/Billing/Transactions',0,o.ps,p)).map(flat)}},
+    run:async function(o,p){return(await fvAll('/Billing/Transactions',0,o.ps,p)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Webhook Event Types',ds:'All subscribable webhook event types — useful for planning automations.',eps:['/Webhooks/EventTypes'],
-    run:async function(){return(await fvAll('/Webhooks/EventTypes',0,100)).map(flat)}},
+    run:async function(){return(await fvAll('/Webhooks/EventTypes',0,100)).map(function(x){return flat(x)})}},
   {cat:'Org-Wide Datasets',ico:'green',nm:'Webhook Subscriptions',ds:'Active webhook subscriptions for your org.',eps:['/Webhooks'],
-    run:async function(){return(await fvAll('/Webhooks',0,100)).map(flat)}},
+    run:async function(){return(await fvAll('/Webhooks',0,100)).map(function(x){return flat(x)})}},
 
   // ─── PER-PROJECT (auto-iterates — optional project type filter) ───
   {cat:'Per-Project (Auto-Iterates)',ico:'blue',nm:'Team Members',ds:'All team assignments across every project — who is on what case. Optionally filter by project type.',eps:['/Projects/{id}/Team'],needsPtFilter:true,
@@ -691,14 +691,14 @@ var RECIPES=[
       return projs}},
   {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Task Board',ds:'All Tasks + Project name + Assignee. Ready for a Domo task management card.',eps:['/Tasks','/Projects'],
     run:async function(o,p){
-      if(p)p('Fetching tasks…',0);var tasks=(await fvAll('/Tasks',0,o.ps)).map(flat);
+      if(p)p('Fetching tasks…',0);var tasks=(await fvAll('/Tasks',0,o.ps)).map(function(x){return flat(x)});
       if(p)p('Fetching projects…',0.5);var projs=await getProjects(0,500);
       var pMap={};projs.forEach(function(pr){var id=pr.projectId_native||pr.projectId;if(id)pMap[id]=pr});
       tasks.forEach(function(t){var pid=t.projectId_native||t.projectId;if(pid&&pMap[pid]){t.projectName=pMap[pid].projectName||'';t.projectPhase=pMap[pid].phase||''}});
       return tasks}},
   {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Client Directory',ds:'Contacts + Addresses + Emails + Phones merged into one row per contact.',eps:['/Contacts','/Contacts/{id}/Addresses','/Contacts/{id}/Emails','/Contacts/{id}/Phones'],
     run:async function(o,p){
-      if(p)p('Fetching contacts…',0);var contacts=(await fvAll('/Contacts',0,o.ps)).map(flat);
+      if(p)p('Fetching contacts…',0);var contacts=(await fvAll('/Contacts',0,o.ps)).map(function(x){return flat(x)});
       for(var i=0;i<Math.min(contacts.length,500);i++){var cid=contacts[i].contactId_native||contacts[i].contactId;if(!cid)continue;
         if(p)p('Enriching '+(i+1)+'/'+contacts.length,i/contacts.length);
         try{var[addr,em,ph]=await Promise.all([fvAll('/Contacts/'+cid+'/Addresses',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/Emails',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/Phones',0,10).catch(function(){return[]})]);
@@ -709,7 +709,7 @@ var RECIPES=[
       return contacts}},
   {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Client Directory + Custom Tabs',ds:'Contacts + Addresses + Emails + Phones + Custom Contact Tabs merged per contact.',eps:['/Contacts','/Contacts/{id}/Addresses','/Contacts/{id}/Emails','/Contacts/{id}/Phones','/Contacts/{id}/CustomTabs'],
     run:async function(o,p){
-      if(p)p('Fetching contacts…',0);var contacts=(await fvAll('/Contacts',0,o.ps)).map(flat);
+      if(p)p('Fetching contacts…',0);var contacts=(await fvAll('/Contacts',0,o.ps)).map(function(x){return flat(x)});
       for(var i=0;i<Math.min(contacts.length,500);i++){var cid=contacts[i].contactId_native||contacts[i].contactId;if(!cid)continue;
         if(p)p('Enriching '+(i+1)+'/'+contacts.length,i/contacts.length);
         try{var[addr,em,ph,tabs]=await Promise.all([fvAll('/Contacts/'+cid+'/Addresses',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/Emails',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/Phones',0,10).catch(function(){return[]}),fvAll('/Contacts/'+cid+'/CustomTabs',0,10).catch(function(){return[]})]);
@@ -755,7 +755,7 @@ var RECIPES=[
       return all}},
   {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Intake Pipeline',ds:'Leads + converted project info. Tracks lead-to-case conversion funnel.',eps:['/Leads','/Projects'],
     run:async function(o,p){
-      if(p)p('Fetching leads…',0);var leads=(await fvAll('/Leads',0,o.ps)).map(flat);
+      if(p)p('Fetching leads…',0);var leads=(await fvAll('/Leads',0,o.ps)).map(function(x){return flat(x)});
       if(p)p('Fetching projects…',0.5);var projs=await getProjects(0,500);
       var pMap={};projs.forEach(function(pr){var id=pr.projectId_native||pr.projectId;if(id)pMap[id]=pr});
       leads.forEach(function(l){var pid=l.projectId_native||l.projectId;if(pid&&pMap[pid]){l.convertedProjectName=pMap[pid].projectName||'';l.convertedProjectPhase=pMap[pid].phase||'';l.convertedProjectType=pMap[pid].projectTypeName||pMap[pid].projectTypeId_native||'';l.isConverted=true}else{l.isConverted=false}});
@@ -774,9 +774,9 @@ var RECIPES=[
       return projs}},
   {cat:'⭐ Smart Composites (Multi-Join)',ico:'red',nm:'Staff Utilization',ds:'Users + their Tasks + Time Entries. Shows who is doing what, how much time logged.',eps:['/Users','/Tasks'],
     run:async function(o,p){
-      if(p)p('Fetching users…',0);var users=(await fvAll('/Users',0,500)).map(flat);
-      if(p)p('Fetching tasks…',0.3);var tasks=(await fvAll('/Tasks',0,o.ps)).map(flat);
-      if(p)p('Fetching billing items…',0.6);var billingItems=(await fvAll('/Billing/Items',0,o.ps)).map(flat);
+      if(p)p('Fetching users…',0);var users=(await fvAll('/Users',0,500)).map(function(x){return flat(x)});
+      if(p)p('Fetching tasks…',0.3);var tasks=(await fvAll('/Tasks',0,o.ps)).map(function(x){return flat(x)});
+      if(p)p('Fetching billing items…',0.6);var billingItems=(await fvAll('/Billing/Items',0,o.ps)).map(function(x){return flat(x)});
       var taskMap={},timeMap={};
       tasks.forEach(function(t){var uid=t.assigneeId_native||t.assigneeId||t.assignedToId;if(uid){if(!taskMap[uid])taskMap[uid]=[];taskMap[uid].push(t)}});
       billingItems.forEach(function(b){var uid=b.userId_native||b.userId||b.timekeeperId;if(uid){if(!timeMap[uid])timeMap[uid]=[];timeMap[uid].push(b)}});
@@ -851,7 +851,7 @@ async function recipeFetch(){
 
   if(!items||!items.length){toast('No data returned','err');btn.disabled=false;btn.innerHTML='Fetch Dataset';gi('progWrap').style.display='none';return}
 
-  items=items.map(flat);
+  items=items.map(function(x){return flat(x)});
   // Normalize: union all keys across all rows so every row has every column
   var allKeys={};items.forEach(function(row){Object.keys(row).forEach(function(k){allKeys[k]=true})});
   var keyList=Object.keys(allKeys);
@@ -971,7 +971,7 @@ async function pipeRefresh(){
   var items=[];
   try{items=await r.run(opts,function(msg,pct){btn.innerHTML='<span class="spin"></span> '+esc(String(msg))})}catch(e){toast('Fetch error: '+e.message,'err')}
   if(!items||!items.length){toast('No data returned','err');btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> Refresh — Re-fetch &amp; Update';return}
-  items=items.map(flat);PIPE.items=items;
+  items=items.map(function(x){return flat(x)});PIPE.items=items;
   var keys=Object.keys(items[0]);PIPE.cols=keys.map(function(k){var s=items[0][k];var t='STRING';if(typeof s==='number')t=Number.isInteger(s)?'LONG':'DOUBLE';if(typeof s==='string'&&/^\d{4}-\d{2}-\d{2}/.test(s))t=s.includes('T')?'DATETIME':'DATE';return{name:k,type:t}});
   btn.innerHTML='<span class="spin"></span> Uploading '+items.length+' rows…';
   if(S.domoConnected){
@@ -1210,7 +1210,7 @@ async function browseFetch(){
       if(!path){toast('Select an endpoint','err');btn.disabled=false;btn.innerHTML='Fetch';return}
       var ps=maxRes>0?maxRes:500;
       var items=await fvAll(path,ps,100);
-      allItems=items.map(flat);
+      allItems=items.map(function(x){return flat(x)});
     }
   }catch(e){toast('Error: '+e.message,'err')}
 
