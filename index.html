@@ -496,17 +496,34 @@ var RECIPES=[
   {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals (from Domo IDs)',ds:'Pulls project IDs from your Domo dataset, then fetches vitals per project from Filevine. No /Projects call needed. Throttled 5 req/min.',eps:['Domo Dataset → IDs','/Projects/{id}/Vitals'],
     run:async function(o,p){
       if(p)p('Loading project IDs from Domo…',0);
-      var ids=await getProjectIdsFromDomo(o.mp);if(!ids.length){toast('No project IDs from Domo','err');return[]}
+      var ids=await getProjectIdsFromDomo(o.mp);
+      console.log('[Recipe] Got',ids.length,'project IDs from Domo:',ids.slice(0,10));
+      if(!ids.length){toast('No project IDs from Domo','err');return[]}
       var rows=[];var filled=0;
       for(var i=0;i<ids.length;i++){var pid=ids[i];
         if(p)p('Vitals '+(i+1)+'/'+ids.length+' ('+filled+' with data)',i/ids.length);
+        console.log('[Recipe] Processing project',i+1,'/',ids.length,'pid=',pid);
         var row={projectId_native:pid};
-        var vd=await fvGetVitals(pid);
-        if(vd&&Object.keys(vd).length){Object.assign(row,vd);filled++}
+        try{
+          var r=await fvGet('/Projects/'+pid+'/Vitals');
+          console.log('[Recipe] fvGet response for',pid,':',r?'got data ('+( Array.isArray(r)?r.length:'object')+')':'NULL');
+          if(r){
+            var items=Array.isArray(r)?r:(r.items||r.Items||[r]);
+            console.log('[Recipe] Vitals items for',pid,':',items.length);
+            items.forEach(function(v){
+              var fn=v.fieldName||v.FieldName||v.name||'';
+              if(fn){row['vital_'+fn]=v.value!==undefined?v.value:(v.Value!==undefined?v.Value:'');row['vital_'+fn+'_label']=v.friendlyName||v.FriendlyName||fn}
+            });
+            filled++;
+          }
+        }catch(e){console.error('[Recipe] Error for',pid,e)}
         rows.push(row);
-        await new Promise(function(ok){setTimeout(ok,12500)});
+        console.log('[Recipe] Row',i+1,'has',Object.keys(row).length,'columns. Total rows so far:',rows.length);
+        if(i<ids.length-1)await new Promise(function(ok){setTimeout(ok,12500)});
       }
-      if(p)p('Done — '+filled+'/'+ids.length+' had vitals',1);
+      console.log('[Recipe] DONE. Total rows:',rows.length,'with vitals:',filled);
+      console.log('[Recipe] Sample row keys:',rows.length?Object.keys(rows[0]):'none');
+      if(p)p('Done — '+filled+'/'+ids.length+' had vitals. '+rows.length+' rows total.',1);
       return rows}},
   {cat:'⭐ Priority Datasets',ico:'red',nm:'Projects + Vitals + Team (from Domo IDs)',ds:'Domo IDs → Filevine vitals + team per project. Full case list.',eps:['Domo Dataset → IDs','/Projects/{id}/Vitals','/Projects/{id}/Team'],
     run:async function(o,p){
