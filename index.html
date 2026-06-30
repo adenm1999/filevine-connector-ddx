@@ -888,28 +888,62 @@ async function pipePush(){
     var wm=v('writeMode')||'REPLACE';
     btn.innerHTML='<span class="spin"></span> Uploading '+PIPE.items.length+' rows ('+wm+')…';
     if(S.domoConnected){
-      // If REPLACE, update schema first to match new columns
-      if(wm==='REPLACE'){
-        var schemaOk=await domoFetch('PUT','/v1/datasets/'+PIPE.existDsId,{name:gi('existDsName').textContent,schema:{columns:PIPE.cols}});
-        if(!schemaOk){toast('Schema update failed — columns may not match','err')}
-      }
-      var ok=await domoFetch('PUT','/v1/datasets/'+PIPE.existDsId+'/data',jsonToCsv(PIPE.items),'text/csv');
-      if(ok){
-        PIPE.lastDsId=PIPE.existDsId;PIPE.lastDsName=gi('existDsName').textContent;
-        toast('Updated!','ok');gi('xferStep2').style.display='none';gi('xferStep3').style.display='';
-        gi('doneName').textContent=PIPE.lastDsName;
-        gi('doneInfo').textContent=PIPE.items.length+' rows · '+PIPE.cols.length+' cols · '+wm+' · ID: '+PIPE.existDsId;
-      }else toast('Upload failed','err')
+      try{
+        if(wm==='REPLACE'){
+          var sr=await fetch('/proxy/domo/api/v1/datasets/'+PIPE.existDsId,{method:'PUT',headers:{Authorization:'Bearer '+S.domoToken,'Content-Type':'application/json'},body:JSON.stringify({name:gi('existDsName').textContent,schema:{columns:PIPE.cols}})});
+          console.log('[Push] Schema update:', sr.status);
+          if(!sr.ok){var se=await sr.text();toast('Schema update failed: '+se.substring(0,100),'err')}
+        }
+        var csv=jsonToCsv(PIPE.items);
+        console.log('[Push] CSV size:', csv.length, 'bytes');
+        var r2=await fetch('/proxy/domo/api/v1/datasets/'+PIPE.existDsId+'/data',{method:'PUT',headers:{Authorization:'Bearer '+S.domoToken,'Content-Type':'text/csv'},body:csv});
+        console.log('[Push] Upload:', r2.status);
+        if(r2.ok||r2.status===204){
+          PIPE.lastDsId=PIPE.existDsId;PIPE.lastDsName=gi('existDsName').textContent;
+          toast('Updated!','ok');gi('xferStep2').style.display='none';gi('xferStep3').style.display='';
+          gi('doneName').textContent=PIPE.lastDsName;
+          gi('doneInfo').textContent=PIPE.items.length+' rows · '+PIPE.cols.length+' cols · '+wm+' · ID: '+PIPE.existDsId;
+        }else{
+          var errBody=await r2.text().catch(function(){return''});
+          toast('Upload failed ('+r2.status+'): '+errBody.substring(0,150),'err');
+          console.error('[Push] Upload error:', errBody);
+        }
+      }catch(e){toast('Push error: '+e.message,'err');console.error('[Push]',e)}
     }else{toast('Connect to Domo first','err')}
   }else{
     // CREATE NEW
     var dsName=v('pipeDsName');if(!dsName){toast('Name required','err');return}if(!PIPE.items.length){toast('No data','err');return}
-    btn.disabled=true;btn.innerHTML='<span class="spin"></span> Creating…';
+    btn.disabled=true;btn.innerHTML='<span class="spin"></span> Creating schema…';
     if(S.domoConnected){
-      var res=await domoFetch('POST','/v1/datasets',{name:dsName,description:'Filevine '+RECIPES[PIPE.idx].nm,schema:{columns:PIPE.cols}});
-      if(res&&res.id){toast('Dataset created','ok');btn.innerHTML='<span class="spin"></span> Uploading '+PIPE.items.length+' rows…';var ok=await domoFetch('PUT','/v1/datasets/'+res.id+'/data',jsonToCsv(PIPE.items),'text/csv');
-        if(ok){PIPE.lastDsId=res.id;PIPE.lastDsName=dsName;toast('Uploaded!','ok');gi('xferStep2').style.display='none';gi('xferStep3').style.display='';gi('doneName').textContent=dsName;gi('doneInfo').textContent=PIPE.items.length+' rows · '+PIPE.cols.length+' cols · ID: '+res.id}else toast('Upload failed','err')
-      }else toast('Create failed','err')
+      try{
+        // Step 1: Create dataset with schema
+        var r1=await fetch('/proxy/domo/api/v1/datasets',{method:'POST',headers:{Authorization:'Bearer '+S.domoToken,'Content-Type':'application/json'},body:JSON.stringify({name:dsName,description:'Filevine '+RECIPES[PIPE.idx].nm,schema:{columns:PIPE.cols}})});
+        var res=await r1.json();
+        console.log('[Push] Create:', r1.status, res);
+        if(!r1.ok||!res.id){toast('Create failed: '+(res.message||res.statusReason||JSON.stringify(res)),'err');btn.disabled=false;btn.innerHTML='Create Dataset &amp; Push to Domo';return}
+        toast('Dataset created: '+res.id,'ok');
+
+        // Step 2: Upload CSV data
+        btn.innerHTML='<span class="spin"></span> Uploading '+PIPE.items.length+' rows…';
+        var csv=jsonToCsv(PIPE.items);
+        console.log('[Push] CSV size:', csv.length, 'bytes,', PIPE.items.length, 'rows');
+        var r2=await fetch('/proxy/domo/api/v1/datasets/'+res.id+'/data',{method:'PUT',headers:{Authorization:'Bearer '+S.domoToken,'Content-Type':'text/csv'},body:csv});
+        console.log('[Push] Upload:', r2.status);
+        if(r2.ok||r2.status===204){
+          PIPE.lastDsId=res.id;PIPE.lastDsName=dsName;
+          toast('Uploaded '+PIPE.items.length+' rows!','ok');
+          gi('xferStep2').style.display='none';gi('xferStep3').style.display='';
+          gi('doneName').textContent=dsName;
+          gi('doneInfo').textContent=PIPE.items.length+' rows · '+PIPE.cols.length+' cols · ID: '+res.id;
+        }else{
+          var errBody=await r2.text().catch(function(){return''});
+          console.error('[Push] Upload failed:', r2.status, errBody);
+          toast('Upload failed ('+r2.status+'): '+errBody.substring(0,150),'err');
+        }
+      }catch(e){
+        console.error('[Push] Error:', e);
+        toast('Push error: '+e.message,'err');
+      }
     }else{S.datasets.unshift({id:'ds_'+Date.now(),name:dsName,type:'api',rows:PIPE.items.length,schema:{columns:PIPE.cols},owner:{displayName:'You'},updatedAt:new Date().toISOString()});gi('dsCount').textContent=S.datasets.length;PIPE.lastDsId='ds_demo';PIPE.lastDsName=dsName;toast('Created (demo)','ok');gi('xferStep2').style.display='none';gi('xferStep3').style.display='';gi('doneName').textContent=dsName;gi('doneInfo').textContent=PIPE.items.length+' rows · Demo'}
   }
   btn.disabled=false;btn.innerHTML=PIPE.mode==='update'?'Update Dataset':'Create Dataset &amp; Push to Domo';
