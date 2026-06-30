@@ -439,25 +439,26 @@ async function getProjectIdsFromDomo(max){
   try{
     var r=await fetch('/proxy/domo/api/v1/datasets/'+DOMO_PROJECTS_DS+'/data?includeHeader=true',{headers:{Authorization:'Bearer '+S.domoToken}});
     if(!r.ok){toast('Domo dataset fetch failed ('+r.status+')','err');return[]}
-    var csv=await r.text();var lines=csv.split('\n');if(lines.length<2)return[];
-    var hdrs=lines[0].split(',').map(function(h){return h.replace(/"/g,'').trim()});
-    // Find the projectId column
+    var csv=await r.text();
+    var lines=csv.split(/\r?\n/).map(function(l){return l.replace(/\r/g,'').trim()}).filter(function(l){return l.length>0});
+    if(lines.length<2){toast('Domo dataset is empty','err');return[]}
+    var hdrs=lines[0].split(',').map(function(h){return h.replace(/^"|"$/g,'').trim()});
+    console.log('[Domo IDs] Headers:',hdrs);
     var pidCol=-1;
-    for(var h=0;h<hdrs.length;h++){var hl=hdrs[h].toLowerCase();if(hl==='projectid_native'||hl==='projectid'||hl==='project_id'||hl==='projectid native'||hl==='project id'){pidCol=h;break}}
-    if(pidCol<0){// Try partial match
-      for(var h=0;h<hdrs.length;h++){if(hdrs[h].toLowerCase().indexOf('projectid')>=0){pidCol=h;break}}}
-    if(pidCol<0){toast('No projectId column found in Domo dataset','err');console.log('Available columns:',hdrs);return[]}
-    console.log('Using column "'+hdrs[pidCol]+'" (index '+pidCol+') for project IDs');
+    for(var h=0;h<hdrs.length;h++){var hl=hdrs[h].toLowerCase();if(hl==='project id'||hl==='projectid_native'||hl==='projectid'||hl==='project_id'){pidCol=h;break}}
+    if(pidCol<0){for(var h=0;h<hdrs.length;h++){if(hdrs[h].toLowerCase().indexOf('project')>=0){pidCol=h;break}}}
+    if(pidCol<0){toast('No project ID column found. Columns: '+hdrs.join(', '),'err');return[]}
+    console.log('[Domo IDs] Using column:',hdrs[pidCol],'at index',pidCol);
     var ids=[],seen=new Set();
     for(var i=1;i<lines.length;i++){
-      if(!lines[i].trim())continue;
-      // Simple CSV parse (handles quoted fields)
-      var vals=lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)||lines[i].split(',');
-      var pid=(vals[pidCol]||'').replace(/"/g,'').trim();
-      if(pid&&!seen.has(pid)){seen.add(pid);ids.push(pid)}
+      var vals=lines[i].split(',').map(function(v){return v.replace(/^"|"$/g,'').trim()});
+      var pid=vals[pidCol]||'';
+      if(pid&&pid!=='null'&&pid!=='undefined'&&!seen.has(pid)){seen.add(pid);ids.push(pid)}
     }
     toast('Found '+ids.length+' unique project IDs from Domo','ok');
-    if(max>0)ids=ids.slice(0,max);
+    console.log('[Domo IDs] Sample:',ids.slice(0,5));
+    C.domoProjectIds=ids;
+    if(max>0)return ids.slice(0,max);
     return ids;
   }catch(e){toast('Error reading Domo dataset: '+e.message,'err');return[]}
 }
